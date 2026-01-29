@@ -148,8 +148,8 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({ compound }) => {
     <Card className="animate-slide-up">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-xl font-semibold text-gray-900">3D Molecular Structure</h3>
-          <p className="text-sm text-gray-500 mt-1">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">3D Molecular Structure</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {compound.ingredient_name}
             {compound.pubchem_cid && ` (CID: ${compound.pubchem_cid})`}
           </p>
@@ -160,50 +160,50 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({ compound }) => {
       <div className="flex flex-wrap gap-2 mb-4">
         <button
           onClick={setStyleBallAndStick}
-          className="px-3 py-1.5 text-sm bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors"
+          className="px-3 py-1.5 text-sm bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors"
         >
           Ball & Stick
         </button>
         <button
           onClick={setStyleStick}
-          className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
           Stick
         </button>
         <button
           onClick={setStyleSphere}
-          className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
           Sphere
         </button>
         <button
           onClick={setStyleCartoon}
-          className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
           Color by Element
         </button>
         <button
           onClick={resetView}
-          className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors ml-auto"
+          className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ml-auto"
         >
           Reset View
         </button>
       </div>
 
       {/* 3D Viewer Container */}
-      <div className="relative w-full h-96 bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="relative w-full h-96 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 z-10">
             <div className="text-center">
               <LoadingSpinner size="lg" />
-              <p className="mt-2 text-sm text-gray-500">Loading 3D structure...</p>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading 3D structure...</p>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
-            <div className="text-center text-red-500">
+          <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-900 z-10">
+            <div className="text-center text-red-500 dark:text-red-400">
               <svg
                 className="w-12 h-12 mx-auto mb-2"
                 fill="none"
@@ -230,15 +230,15 @@ export const MoleculeViewer: React.FC<MoleculeViewerProps> = ({ compound }) => {
       </div>
 
       {/* Instructions */}
-      <div className="mt-4 text-xs text-gray-500">
-        <p><strong>Controls:</strong> Drag to rotate • Scroll to zoom • Shift+drag to pan</p>
+      <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+        <p><strong>Controls:</strong> Drag to rotate - Scroll to zoom - Shift+drag to pan</p>
       </div>
 
       {/* Compound details */}
       {compound.inchikey && (
-        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-500 font-medium">InChIKey</p>
-          <p className="text-sm font-mono text-gray-700 break-all">{compound.inchikey}</p>
+        <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">InChIKey</p>
+          <p className="text-sm font-mono text-gray-700 dark:text-gray-300 break-all">{compound.inchikey}</p>
         </div>
       )}
     </Card>

@@ -144,8 +144,14 @@ class ChEMBLClient:
                 if not target_chembl_id:
                     continue
 
-                pchembl_value = activity.get("pchembl_value")
-                if pchembl_value is None:
+                pchembl_value_raw = activity.get("pchembl_value")
+                if pchembl_value_raw is None:
+                    continue
+
+                # Convert to float for comparison (API may return string)
+                try:
+                    pchembl_value = float(pchembl_value_raw)
+                except (ValueError, TypeError):
                     continue
 
                 # Keep the best (highest pChEMBL = lowest IC50/Ki) for each target
@@ -179,7 +185,7 @@ class ChEMBLClient:
                 # pChEMBL > 7 (IC50 < 100nM) = high confidence
                 # pChEMBL 6-7 (100nM - 1uM) = medium
                 # pChEMBL < 6 = lower
-                pchembl = activity_data["pchembl_value"]
+                pchembl = float(activity_data["pchembl_value"])
                 if pchembl >= 7.0:
                     confidence_score = 0.9
                 elif pchembl >= 6.0:
@@ -187,8 +193,11 @@ class ChEMBLClient:
                 else:
                     confidence_score = 0.5
 
+                # Use UniProt ID if available, otherwise fallback to ChEMBL ID
+                target_id = target_info.get("uniprot_id") or target_chembl_id
+
                 evidence = TargetEvidence(
-                    target_id=target_info.get("uniprot_id", target_chembl_id),
+                    target_id=target_id,
                     target_name=target_info["target_name"],
                     target_type=target_info.get("target_type"),
                     organism=target_info.get("organism", "Homo sapiens"),
@@ -223,23 +232,51 @@ class ChEMBLClient:
             url = f"{self.base_url}/target/{target_chembl_id}.json"
             data = self._get(url)
 
-            # Extract UniProt ID if available
+            # Extract UniProt ID - try multiple approaches
             uniprot_id = None
             components = data.get("target_components", [])
-            if components:
-                accessions = components[0].get("target_component_xrefs", [])
-                for xref in accessions:
+
+            for component in components:
+                # Approach 1: Get directly from accession field (most reliable)
+                accession = component.get("accession")
+                if accession and self._is_valid_uniprot_id(accession):
+                    uniprot_id = accession
+                    logger.info(f"Found UniProt ID {uniprot_id} from accession for {target_chembl_id}")
+                    break
+
+                # Approach 2: Try target_component_xrefs
+                xrefs = component.get("target_component_xrefs", [])
+                for xref in xrefs:
                     if xref.get("xref_src_db") == "UniProt":
                         uniprot_id = xref.get("xref_id")
+                        logger.info(f"Found UniProt ID {uniprot_id} from xrefs for {target_chembl_id}")
                         break
+
+                if uniprot_id:
+                    break
+
+            if not uniprot_id:
+                logger.warning(f"No UniProt ID found for target {target_chembl_id}")
 
             return {
                 "target_name": data.get("pref_name", "Unknown"),
                 "target_type": data.get("target_type"),
                 "organism": data.get("organism"),
                 "uniprot_id": uniprot_id,
+                "target_chembl_id": target_chembl_id,
             }
 
         except Exception as e:
             logger.error(f"Error getting target info for {target_chembl_id}: {e}")
             return None
+
+    def _is_valid_uniprot_id(self, identifier: str) -> bool:
+        """Check if an identifier looks like a valid UniProt ID"""
+        if not identifier:
+            return False
+        # UniProt IDs typically start with P, Q, O, A-N, or R and are 6-10 chars
+        # Examples: P35354, Q9Y4K4, O15350
+        if len(identifier) < 6 or len(identifier) > 10:
+            return False
+        first_char = identifier[0].upper()
+        return first_char in 'PQOABCDEFGHIJKLMNR' and identifier[1:].isalnum()

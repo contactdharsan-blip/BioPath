@@ -17,8 +17,23 @@ class ReactomeClient:
 
     def __init__(self):
         self.base_url = settings.reactome_base_url
+        # Analysis Service is at a different path
+        self.analysis_url = "https://reactome.org/AnalysisService"
         self.rate_limiter = RateLimiter(settings.reactome_rate_limit)
         self.timeout = 30.0
+
+    def _is_valid_uniprot_id(self, identifier: str) -> bool:
+        """Check if an identifier looks like a valid UniProt ID"""
+        if not identifier:
+            return False
+        # UniProt IDs typically start with P, Q, O, A-N, or R and are 6-10 chars
+        # ChEMBL IDs start with "CHEMBL" - filter those out
+        if identifier.upper().startswith("CHEMBL"):
+            return False
+        if len(identifier) < 6 or len(identifier) > 10:
+            return False
+        first_char = identifier[0].upper()
+        return first_char in 'PQOABCDEFGHIJKLMNR' and identifier[1:].isalnum()
 
     @retry(
         stop=stop_after_attempt(settings.max_retries),
@@ -82,38 +97,61 @@ class ReactomeClient:
             return {}, provenance
 
         try:
-            # Reactome mapping endpoint expects newline-separated identifiers
-            identifiers_text = "\n".join(target_ids)
+            # Filter for valid UniProt IDs only - Reactome doesn't recognize ChEMBL IDs
+            valid_ids = [tid for tid in target_ids if self._is_valid_uniprot_id(tid)]
+            invalid_ids = [tid for tid in target_ids if tid not in valid_ids]
 
-            # Use projection mapping to map to pathways
-            url = f"{self.base_url}/data/mapping/projection"
+            if invalid_ids:
+                logger.warning(f"Skipping {len(invalid_ids)} non-UniProt IDs for Reactome: {invalid_ids[:5]}...")
+
+            if not valid_ids:
+                logger.warning("No valid UniProt IDs to map to pathways")
+                provenance.status = "success"
+                provenance.duration_ms = (time.time() - start_time) * 1000
+                return {}, provenance
+
+            logger.info(f"Mapping {len(valid_ids)} UniProt IDs to pathways: {valid_ids[:5]}...")
+
+            # Reactome Analysis Service expects newline-separated identifiers
+            identifiers_text = "\n".join(valid_ids)
+
+            # Use Analysis Service for identifier-to-pathway mapping
+            url = f"{self.analysis_url}/identifiers/projection?interactors=false"
             results = self._post(url, identifiers_text)
 
-            # Parse results
+            # Parse results from Analysis Service response format
             pathway_map: Dict[str, List[Dict[str, Any]]] = {}
 
-            for result in results:
-                identifier = result.get("identifier")
-                maps_to = result.get("mapsTo", [])
+            # The Analysis Service returns pathways with their participating identifiers
+            pathways_found = results.get("pathways", [])
+            logger.info(f"Reactome found {len(pathways_found)} pathways")
 
-                if not identifier or not maps_to:
-                    continue
+            # Build a map of target_id -> pathways
+            for pathway in pathways_found:
+                pathway_info = {
+                    "pathway_id": pathway.get("stId"),
+                    "pathway_name": pathway.get("name"),
+                    "pathway_species": pathway.get("species", {}).get("name"),
+                    "is_inferred": pathway.get("species", {}).get("taxId") != "9606",
+                    "p_value": pathway.get("entities", {}).get("pValue"),
+                    "fdr": pathway.get("entities", {}).get("fdr"),
+                }
 
-                pathways = []
-                for mapping in maps_to:
-                    pathway_info = {
-                        "pathway_id": mapping.get("stId"),
-                        "pathway_name": mapping.get("displayName"),
-                        "pathway_species": mapping.get("species"),
-                        "is_inferred": mapping.get("isInferred", False),
-                    }
-                    pathways.append(pathway_info)
-
-                pathway_map[identifier] = pathways
+                # For now, associate the pathway with all submitted targets
+                # (Analysis Service doesn't directly tell us which specific target maps to which pathway)
+                for target_id in valid_ids:
+                    if target_id not in pathway_map:
+                        pathway_map[target_id] = []
+                    pathway_map[target_id].append(pathway_info)
 
             provenance.duration_ms = (time.time() - start_time) * 1000
             provenance.status = "success"
-            logger.info(f"Mapped {len(pathway_map)} targets to pathways")
+
+            # Enhanced logging
+            total_pathways = len(pathways_found)
+            logger.info(f"Reactome mapping results: {total_pathways} pathways found for {len(valid_ids)} targets")
+            if pathways_found:
+                logger.info(f"Sample pathway: {pathways_found[0].get('name')}")
 
             return pathway_map, provenance
 
@@ -167,13 +205,22 @@ class ReactomeClient:
 
             uniprot_ids = []
             for participant in participants:
-                # Extract UniProt IDs from cross-references
-                refs = participant.get("crossReferences", [])
-                for ref in refs:
+                # Extract UniProt IDs from refEntities (Reactome's current format)
+                ref_entities = participant.get("refEntities", [])
+                for ref in ref_entities:
+                    identifier = ref.get("identifier")
+                    if identifier and self._is_valid_uniprot_id(identifier):
+                        uniprot_ids.append(identifier)
+
+                # Also check crossReferences for backwards compatibility
+                cross_refs = participant.get("crossReferences", [])
+                for ref in cross_refs:
                     if ref.get("databaseName") == "UniProt":
                         uniprot_ids.append(ref.get("identifier"))
 
-            return list(set(uniprot_ids))  # Remove duplicates
+            result = list(set(uniprot_ids))  # Remove duplicates
+            logger.info(f"Found {len(result)} UniProt IDs in pathway {pathway_id}")
+            return result
 
         except Exception as e:
             logger.error(f"Error getting pathway participants for {pathway_id}: {e}")

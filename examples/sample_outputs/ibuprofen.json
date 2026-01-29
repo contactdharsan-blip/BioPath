@@ -1,0 +1,190 @@
+{
+  "ingredient_name": "ibuprofen",
+  "analysis_timestamp": "2024-01-15T10:30:00.123456",
+  "compound_identity": {
+    "ingredient_name": "ibuprofen",
+    "pubchem_cid": 3672,
+    "canonical_smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+    "inchikey": "HEFNNWSXXWATRW-UHFFFAOYSA-N",
+    "molecular_formula": "C13H18O2",
+    "molecular_weight": 206.28,
+    "iupac_name": "2-[4-(2-methylpropyl)phenyl]propanoic acid",
+    "synonyms": [
+      "ibuprofen",
+      "Advil",
+      "Motrin",
+      "Nurofen",
+      "Brufen"
+    ],
+    "resolution_timestamp": "2024-01-15T10:30:00.123456"
+  },
+  "known_targets": [
+    {
+      "target_id": "P35354",
+      "target_name": "Prostaglandin G/H synthase 2",
+      "target_type": "SINGLE PROTEIN",
+      "organism": "Homo sapiens",
+      "pchembl_value": 6.52,
+      "standard_type": "IC50",
+      "standard_value": 302.0,
+      "standard_units": "nM",
+      "assay_references": [
+        {
+          "assay_id": "CHEMBL1234567",
+          "assay_description": "Inhibition of COX-2 in human recombinant enzyme",
+          "source": "ChEMBL",
+          "source_url": "https://www.ebi.ac.uk/chembl/assay_report_card/CHEMBL1234567/"
+        }
+      ],
+      "confidence_tier": "A",
+      "confidence_score": 0.7,
+      "is_predicted": false,
+      "source": "ChEMBL"
+    },
+    {
+      "target_id": "P23219",
+      "target_name": "Prostaglandin G/H synthase 1",
+      "target_type": "SINGLE PROTEIN",
+      "organism": "Homo sapiens",
+      "pchembl_value": 5.98,
+      "standard_type": "IC50",
+      "standard_value": 1050.0,
+      "standard_units": "nM",
+      "assay_references": [
+        {
+          "assay_id": "CHEMBL1234568",
+          "assay_description": "Inhibition of COX-1 in human recombinant enzyme",
+          "source": "ChEMBL",
+          "source_url": "https://www.ebi.ac.uk/chembl/assay_report_card/CHEMBL1234568/"
+        }
+      ],
+      "confidence_tier": "A",
+      "confidence_score": 0.5,
+      "is_predicted": false,
+      "source": "ChEMBL"
+    }
+  ],
+  "predicted_targets": [],
+  "pathways": [
+    {
+      "pathway_id": "R-HSA-2162123",
+      "pathway_name": "Synthesis of Prostaglandins (PG) and Thromboxanes (TX)",
+      "pathway_species": "Homo sapiens",
+      "matched_targets": [
+        "P35354",
+        "P23219"
+      ],
+      "measured_targets_count": 2,
+      "predicted_targets_count": 0,
+      "impact_score": 0.847,
+      "confidence_tier": "B",
+      "confidence_score": 0.7,
+      "explanation": "This compound shows high impact on Synthesis of Prostaglandins (PG) and Thromboxanes (TX) via measured interactions with 2 targets including Prostaglandin G/H synthase 2, Prostaglandin G/H synthase 1.",
+      "pathway_url": "https://reactome.org/content/detail/R-HSA-2162123",
+      "related_pathways": []
+    },
+    {
+      "pathway_id": "R-HSA-2142753",
+      "pathway_name": "Arachidonic acid metabolism",
+      "pathway_species": "Homo sapiens",
+      "matched_targets": [
+        "P35354",
+        "P23219"
+      ],
+      "measured_targets_count": 2,
+      "predicted_targets_count": 0,
+      "impact_score": 0.792,
+      "confidence_tier": "B",
+      "confidence_score": 0.7,
+      "explanation": "This compound shows high impact on Arachidonic acid metabolism via measured interactions with 2 targets including Prostaglandin G/H synthase 2, Prostaglandin G/H synthase 1.",
+      "pathway_url": "https://reactome.org/content/detail/R-HSA-2142753",
+      "related_pathways": []
+    },
+    {
+      "pathway_id": "R-HSA-5617472",
+      "pathway_name": "Activation of PPARG coactivator 1 alpha (PPARGC1A) by phosphorylation",
+      "pathway_species": "Homo sapiens",
+      "matched_targets": [
+        "P35354"
+      ],
+      "measured_targets_count": 1,
+      "predicted_targets_count": 0,
+      "impact_score": 0.456,
+      "confidence_tier": "B",
+      "confidence_score": 0.6,
+      "explanation": "This compound shows moderate impact on Activation of PPARG coactivator 1 alpha (PPARGC1A) by phosphorylation via measured interaction with Prostaglandin G/H synthase 2 (pChEMBL 6.5).",
+      "pathway_url": "https://reactome.org/content/detail/R-HSA-5617472",
+      "related_pathways": []
+    }
+  ],
+  "final_summary": {
+    "total_targets_measured": 2,
+    "total_targets_predicted": 0,
+    "total_pathways_affected": 3,
+    "top_pathways": [
+      {
+        "name": "Synthesis of Prostaglandins (PG) and Thromboxanes (TX)",
+        "impact_score": 0.847,
+        "confidence_tier": "B",
+        "explanation": "This compound shows high impact on Synthesis of Prostaglandins (PG) and Thromboxanes (TX) via measured interactions with 2 targets including Prostaglandin G/H synthase 2, Prostaglandin G/H synthase 1."
+      },
+      {
+        "name": "Arachidonic acid metabolism",
+        "impact_score": 0.792,
+        "confidence_tier": "B",
+        "explanation": "This compound shows high impact on Arachidonic acid metabolism via measured interactions with 2 targets including Prostaglandin G/H synthase 2, Prostaglandin G/H synthase 1."
+      },
+      {
+        "name": "Activation of PPARG coactivator 1 alpha (PPARGC1A) by phosphorylation",
+        "impact_score": 0.456,
+        "confidence_tier": "B",
+        "explanation": "This compound shows moderate impact on Activation of PPARG coactivator 1 alpha (PPARGC1A) by phosphorylation via measured interaction with Prostaglandin G/H synthase 2 (pChEMBL 6.5)."
+      }
+    ],
+    "strongest_target": {
+      "name": "Prostaglandin G/H synthase 2",
+      "pchembl": 6.52,
+      "potency_type": "IC50"
+    },
+    "mechanism_flags": [
+      "High mechanism-level impact on Synthesis of Prostaglandins (PG) and Thromboxanes (TX)",
+      "High mechanism-level impact on Arachidonic acid metabolism"
+    ],
+    "disclaimer": "This report provides mechanism-level evidence and computational predictions. It does NOT constitute medical advice or clinical safety assessment. All predicted interactions are hypotheses requiring experimental validation."
+  },
+  "provenance": [
+    {
+      "service": "PubChem",
+      "endpoint": "/compound/name/ibuprofen",
+      "timestamp": "2024-01-15T10:30:00.234567",
+      "duration_ms": 245.3,
+      "status": "success",
+      "cache_hit": false,
+      "response_size": null,
+      "error_message": null
+    },
+    {
+      "service": "ChEMBL",
+      "endpoint": "/activity (InChIKey: HEFNNWSXXWATR...)",
+      "timestamp": "2024-01-15T10:30:01.456789",
+      "duration_ms": 1823.7,
+      "status": "success",
+      "cache_hit": false,
+      "response_size": null,
+      "error_message": null
+    },
+    {
+      "service": "Reactome",
+      "endpoint": "/data/mapping/projection",
+      "timestamp": "2024-01-15T10:30:03.123456",
+      "duration_ms": 892.1,
+      "status": "success",
+      "cache_hit": false,
+      "response_size": null,
+      "error_message": null
+    }
+  ],
+  "analysis_version": "1.0.0",
+  "predictions_enabled": false,
+  "total_analysis_duration_seconds": 3.87
+}

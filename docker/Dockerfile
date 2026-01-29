@@ -1,5 +1,23 @@
-# Multi-stage Dockerfile for BioPath
+# Multi-stage Dockerfile for BioPath with integrated frontend
 
+# Stage 1: Build Frontend
+FROM node:20-alpine as frontend-builder
+
+WORKDIR /frontend
+
+# Copy frontend files
+COPY biopath-frontend/package.json biopath-frontend/package-lock.json* ./
+
+# Install dependencies
+RUN npm install
+
+# Copy rest of frontend code
+COPY biopath-frontend/ ./
+
+# Build for production
+RUN npm run build
+
+# Stage 2: Python Backend
 FROM continuumio/miniconda3:latest as base
 
 # Set working directory
@@ -27,6 +45,9 @@ RUN conda activate biopath && \
 
 # Copy application code
 COPY app /app/app
+
+# Copy built frontend from Stage 1
+COPY --from=frontend-builder /frontend/dist /app/static
 
 # Expose port
 EXPOSE 8000

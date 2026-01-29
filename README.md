@@ -1,6 +1,6 @@
 # BioPath
 
-**Production-ready Chemical-Target-Pathway Analysis Framework**
+**Production-ready Chemical-Target-Pathway Analysis Framework with Modern Web UI**
 
 BioPath is a comprehensive bioinformatics pipeline that analyzes active pharmaceutical ingredients (APIs) and maps their molecular interactions to biological pathways. Given a compound name (e.g., "ibuprofen"), BioPath:
 
@@ -13,7 +13,9 @@ BioPath is a comprehensive bioinformatics pipeline that analyzes active pharmace
 
 ## Features
 
+- **Modern Web Interface**: Beautiful React + Tailwind CSS frontend with PubChem autocomplete search
 - **Evidence-Based Analysis**: Separates measured bioassay data (Tier A) from computational predictions (Tier C)
+- **Interactive Visualizations**: Charts for pathway impacts and target potency scores
 - **Transparent Provenance**: Full tracking of all API calls, timestamps, and data sources
 - **Robust Error Handling**: Exponential backoff, rate limiting, and comprehensive error recovery
 - **Async Processing**: Celery + Redis for scalable background jobs
@@ -22,73 +24,61 @@ BioPath is a comprehensive bioinformatics pipeline that analyzes active pharmace
 - **Plugin System**: Extensible architecture for custom prediction modules
 - **Docker-Ready**: Complete containerization with docker-compose
 
-## Architecture
-
-```
-┌─────────────┐
-│   FastAPI   │ ← HTTP Requests
-│  Application│
-└──────┬──────┘
-       │
-       ├──→ Sync: /analyze_sync → AnalysisService
-       └──→ Async: /analyze → Redis → Celery Worker
-                                       │
-                                       ├─→ PubChemClient
-                                       ├─→ ChEMBLClient
-                                       ├─→ ReactomeClient
-                                       ├─→ ScoringEngine
-                                       └─→ CacheLayer
-```
-
 ## Quick Start
 
-### Using Docker (Recommended)
+### One Command Setup
 
 ```bash
-# Clone the repository
-cd biopath
-
 # Copy environment template
 cp .env.example .env
 
-# Start all services
+# Start everything (API + Frontend + Workers)
 docker-compose up -d
 
-# Check health
-curl http://localhost:8000/health
-
-# Run analysis
-curl -X POST "http://localhost:8000/analyze_sync" \
-  -H "Content-Type: application/json" \
-  -d '{"ingredient_name": "ibuprofen", "enable_predictions": false}'
+# Open your browser
+open http://localhost:8000
 ```
 
-Services:
-- **API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
-- **Flower (Celery monitoring)**: http://localhost:5555
+That's it! The web interface will be available at **http://localhost:8000**
 
-### Local Development
+### Available Services
 
-```bash
-# Create conda environment
-conda create -n biopath python=3.10 -y
-conda activate biopath
+| Service | URL | Description |
+|---------|-----|-------------|
+| **Web UI** | http://localhost:8000 | Modern React frontend with compound search |
+| **API Docs** | http://localhost:8000/docs | Interactive Swagger documentation |
+| **Flower** | http://localhost:5555 | Celery task monitoring |
 
-# Install RDKit
-conda install -c conda-forge rdkit
+## Using the Web Interface
 
-# Install dependencies
-pip install -r requirements.txt
+1. **Search for a compound**: Start typing an ingredient name (e.g., "ibu" for ibuprofen)
+2. **Select from autocomplete**: Choose from PubChem suggestions
+3. **Click "Analyze"**: Wait 5-15 seconds for the analysis
+4. **View results**: Explore targets, pathways, and biological impacts
 
-# Start Redis
-docker run -d -p 6379:6379 redis:7-alpine
+## Architecture
 
-# Start Celery worker
-celery -A app.tasks.celery_tasks worker --loglevel=info
-
-# Start API server
-uvicorn app.main:app --reload
+```
+┌─────────────────────────────────────────────┐
+│              React Frontend                  │
+│    (PubChem Autocomplete + Visualizations)   │
+└────────────────────┬────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────┐
+│              FastAPI Backend                 │
+│         (Serves UI + API endpoints)          │
+└──────┬─────────────────────────────┬────────┘
+       │                             │
+       ├──→ Sync: /analyze_sync      └──→ Async: /analyze
+       │         │                              │
+       │         ▼                              ▼
+       │   AnalysisService              Redis → Celery Worker
+       │         │                              │
+       └─────────┴──────────────────────────────┘
+                 │
+    ┌────────────┼────────────┐
+    ▼            ▼            ▼
+PubChemClient ChEMBLClient ReactomeClient
 ```
 
 ## API Endpoints
@@ -178,9 +168,9 @@ Health check endpoint.
 
 ## Confidence Tiers
 
-- **Tier A**: Measured target evidence from bioassays (ChEMBL)
-- **Tier B**: Inferred pathway impact from known target roles
-- **Tier C**: Predicted interactions from docking/ML (hypothesis)
+- **Tier A** (Green): Measured target evidence from bioassays (ChEMBL)
+- **Tier B** (Yellow): Inferred pathway impact from known target roles
+- **Tier C** (Gray): Predicted interactions from docking/ML (hypothesis)
 
 ## Configuration
 
@@ -202,22 +192,42 @@ POTENCY_WEIGHT=0.7
 PATHWAY_COVERAGE_WEIGHT=0.3
 ```
 
-## Scoring Algorithm
+## Development
 
-Pathway impact score is calculated as:
+### Local Development (without Docker)
 
+```bash
+# Create conda environment
+conda create -n biopath python=3.10 -y
+conda activate biopath
+
+# Install RDKit
+conda install -c conda-forge rdkit
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start Redis
+docker run -d -p 6379:6379 redis:7-alpine
+
+# Start Celery worker
+celery -A app.tasks.celery_tasks worker --loglevel=info
+
+# Start API server
+uvicorn app.main:app --reload
 ```
-impact_score = (potency_weight × potency_score) +
-               (coverage_weight × coverage_score) +
-               (1 - potency_weight - coverage_weight) × prediction_score
+
+### Frontend Development
+
+The frontend is in `biopath-frontend/`. To develop separately:
+
+```bash
+cd biopath-frontend
+npm install
+npm run dev
 ```
 
-Where:
-- **potency_score**: Normalized pChEMBL values (higher = stronger binding)
-- **coverage_score**: Log-scaled pathway coverage (targets hit / total targets)
-- **prediction_score**: Docking/ML prediction scores (if enabled)
-
-## Testing
+### Testing
 
 ```bash
 # Run all tests
@@ -228,27 +238,6 @@ pytest --cov=app --cov-report=html
 
 # Run specific test module
 pytest tests/test_pubchem.py -v
-```
-
-## Example Usage
-
-See [examples/example_run.py](examples/example_run.py) for complete examples.
-
-```python
-from app.services.analysis import AnalysisService
-from app.models.schemas import IngredientInput
-
-service = AnalysisService()
-
-report = service.analyze_ingredient(
-    IngredientInput(
-        ingredient_name="ibuprofen",
-        enable_predictions=False
-    )
-)
-
-print(f"Found {len(report.known_targets)} targets")
-print(f"Affected {len(report.pathways)} pathways")
 ```
 
 ## External APIs Used
@@ -264,30 +253,6 @@ print(f"Affected {len(report.pathways)} pathways")
 - **Reactome Content Service**: Pathway mapping
   - Endpoint: https://reactome.org/ContentService
   - Rate: 10 req/sec (self-imposed)
-
-## Plugin Development
-
-To add custom prediction modules:
-
-1. Implement `PredictionPlugin` interface:
-
-```python
-from app.plugins.base import PredictionPlugin
-
-class MyPlugin(PredictionPlugin):
-    def predict_targets(self, smiles: str) -> List[PredictedInteraction]:
-        # Your implementation
-        pass
-```
-
-2. Update configuration:
-
-```python
-ENABLE_DOCKING_PLUGIN=true
-DOCKING_PLUGIN_PATH=app.plugins.my_plugin
-```
-
-See [app/plugins/docking_vina.py](app/plugins/docking_vina.py) for stub example.
 
 ## Disclaimer
 
@@ -310,16 +275,11 @@ When using BioPath, please cite the data sources:
 
 MIT License - See LICENSE file
 
-## Support
-
-- **Issues**: https://github.com/yourorg/biopath/issues
-- **Documentation**: http://localhost:8000/docs (when running)
-
 ## Roadmap
 
+- [x] Interactive visualization dashboard
 - [ ] BindingDB integration
 - [ ] PubMed literature mining
-- [ ] Interactive visualization dashboard
 - [ ] Batch analysis endpoint
 - [ ] Export to PDF/Excel
 - [ ] ML-based target prediction

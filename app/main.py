@@ -2,11 +2,13 @@
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import uuid
 import logging
 from typing import Optional
+from pathlib import Path
 
 from app.config import settings
 from app.models.schemas import (
@@ -63,9 +65,9 @@ async def health_check():
     }
 
 
-@app.get("/")
-async def root():
-    """Root endpoint with API information"""
+@app.get("/api")
+async def api_info():
+    """API information endpoint"""
     return {
         "service": settings.app_name,
         "version": settings.app_version,
@@ -247,6 +249,43 @@ async def global_exception_handler(request, exc):
             "detail": str(exc) if settings.debug else "An error occurred"
         }
     )
+
+
+# Serve static frontend files
+STATIC_DIR = Path(__file__).parent.parent / "static"
+
+if STATIC_DIR.exists():
+    # Serve static assets (JS, CSS, images)
+    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+
+    @app.get("/")
+    async def serve_frontend():
+        """Serve the React frontend"""
+        return FileResponse(STATIC_DIR / "index.html")
+
+    # Catch-all for SPA routing (must be after API routes)
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        """Serve index.html for client-side routing"""
+        # Check if it's an API route (don't serve index.html for API)
+        if full_path.startswith(("analyze", "results", "jobs", "health", "docs", "redoc", "openapi")):
+            raise HTTPException(status_code=404, detail="Not found")
+
+        # Serve index.html for all other routes (SPA routing)
+        index_file = STATIC_DIR / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        raise HTTPException(status_code=404, detail="Frontend not found")
+else:
+    @app.get("/")
+    async def root():
+        """Root endpoint - no frontend available"""
+        return {
+            "service": settings.app_name,
+            "version": settings.app_version,
+            "message": "Frontend not available. Visit /docs for API documentation.",
+            "docs": "/docs"
+        }
 
 
 if __name__ == "__main__":

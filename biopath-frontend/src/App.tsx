@@ -262,7 +262,7 @@ function App() {
             Created by <span className="font-medium text-gray-700 dark:text-gray-300">Dharsan Kesavan</span>
           </p>
           <p className="mt-1">
-            Powered by PubChem, ChEMBL, and Reactome
+            Powered by PubChem, ChEMBL, Reactome, and Open Targets
           </p>
           <p className="mt-1">
             For research purposes only - Not medical advice

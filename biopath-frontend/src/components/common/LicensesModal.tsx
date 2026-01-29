@@ -29,6 +29,12 @@ export const LicensesModal: React.FC<LicensesModalProps> = ({ isOpen, onClose })
       url: 'https://reactome.org/',
     },
     {
+      name: 'Open Targets',
+      description: 'Drug target validation and pathway data',
+      license: 'Apache 2.0',
+      url: 'https://platform.opentargets.org/',
+    },
+    {
       name: 'UniProt',
       description: 'Protein sequence and functional information',
       license: 'CC BY 4.0',

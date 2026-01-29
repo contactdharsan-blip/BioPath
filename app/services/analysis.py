@@ -14,6 +14,7 @@ from app.models.schemas import (
     ProvenanceRecord
 )
 from app.clients import PubChemClient, ChEMBLClient, ReactomeClient
+from app.clients.drugbank import DrugBankClient
 from app.services.cache import cache_service
 from app.services.scoring import ScoringEngine
 from app.config import settings
@@ -28,6 +29,7 @@ class AnalysisService:
         self.pubchem = PubChemClient()
         self.chembl = ChEMBLClient()
         self.reactome = ReactomeClient()
+        self.drugbank = DrugBankClient()
         self.scorer = ScoringEngine()
         self.cache = cache_service
 
@@ -103,6 +105,20 @@ class AnalysisService:
 
         pathways, prov = self._map_pathways(known_targets, predicted_targets)
         provenance.append(prov)
+
+        # Step 4b: Fallback to DrugBank/Open Targets if Reactome has no pathways
+        if not pathways and settings.enable_drugbank_fallback:
+            logger.info(f"No Reactome pathways found, trying Open Targets fallback for {ingredient_name}")
+            drugbank_pathways = self.drugbank.get_pathways_for_drug(ingredient_name)
+            if drugbank_pathways:
+                pathways = drugbank_pathways
+                fallback_prov = ProvenanceRecord(
+                    service="Open Targets",
+                    endpoint="/graphql (fallback)",
+                    status="success"
+                )
+                provenance.append(fallback_prov)
+                logger.info(f"Found {len(pathways)} pathways via Open Targets fallback")
 
         # Step 5: Generate summary
         final_summary = self._generate_summary(pathways, known_targets, predicted_targets)

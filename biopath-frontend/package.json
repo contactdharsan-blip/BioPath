@@ -10,6 +10,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "3dmol": "^2.1.0",
     "@tanstack/react-query": "^5.17.0",
     "axios": "^1.6.2",
     "clsx": "^2.0.0",

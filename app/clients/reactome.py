@@ -20,7 +20,7 @@ class ReactomeClient:
         # Analysis Service is at a different path
         self.analysis_url = "https://reactome.org/AnalysisService"
         self.rate_limiter = RateLimiter(settings.reactome_rate_limit)
-        self.timeout = 30.0
+        self.timeout = 60.0
 
     def _is_valid_uniprot_id(self, identifier: str) -> bool:
         """Check if an identifier looks like a valid UniProt ID"""

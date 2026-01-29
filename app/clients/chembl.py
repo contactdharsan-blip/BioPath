@@ -18,7 +18,7 @@ class ChEMBLClient:
     def __init__(self):
         self.base_url = settings.chembl_base_url
         self.rate_limiter = RateLimiter(settings.chembl_rate_limit)
-        self.timeout = 30.0
+        self.timeout = 60.0
 
     @retry(
         stop=stop_after_attempt(settings.max_retries),

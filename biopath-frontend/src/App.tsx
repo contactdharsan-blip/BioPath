@@ -1,22 +1,20 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { AnalysisForm } from './components/analysis/AnalysisForm';
 import { CompoundInfo } from './components/analysis/CompoundInfo';
 import { SummaryCard } from './components/analysis/SummaryCard';
 import { TargetsList } from './components/analysis/TargetsList';
 import { PathwaysList } from './components/analysis/PathwaysList';
 import { MoleculeViewer } from './components/analysis/MoleculeViewer';
-import { BodySystemDiagram } from './components/analysis/BodySystemDiagram';
-import { HealthMetricsDashboard } from './components/analysis/HealthMetricsDashboard';
-import { SideEffectsProfile } from './components/analysis/SideEffectsProfile';
+import { SideEffectsTab } from './components/analysis/SideEffectsTab';
+import { DrugInteractionsTab } from './components/analysis/DrugInteractionsTab';
 import { LoadingOverlay } from './components/common/LoadingOverlay';
 import { useAnalysisSync } from './hooks/useAnalysisSync';
 import { useTheme } from './hooks/useTheme';
-import { mapTargetsToBodyEffects } from './utils/bodyEffectsMapper';
 import type { IngredientInput, BodyImpactReport } from './api/types';
 import clsx from 'clsx';
 import './App.css';
 
-type TabId = 'overview' | '3d-structure' | 'targets' | 'pathways' | 'body-effects';
+type TabId = 'overview' | '3d-structure' | 'targets' | 'pathways' | 'side-effects' | 'drug-interactions';
 
 interface Tab {
   id: TabId;
@@ -93,21 +91,24 @@ function App() {
       ),
     },
     {
-      id: 'body-effects',
-      label: 'Body Effects',
+      id: 'side-effects',
+      label: 'Side Effects',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'drug-interactions',
+      label: 'Drug Interactions',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
         </svg>
       ),
     },
   ];
-
-  // Compute body effects data when result is available
-  const bodyEffectsData = useMemo(() => {
-    if (!result) return null;
-    return mapTargetsToBodyEffects(result.known_targets, result.pathways);
-  }, [result]);
 
   return (
     <div className="min-h-screen gradient-bg transition-colors duration-200">
@@ -215,15 +216,20 @@ function App() {
                   )
                 )}
 
-                {activeTab === 'body-effects' && bodyEffectsData && (
-                  <div className="space-y-8">
-                    <BodySystemDiagram affectedSystems={bodyEffectsData.affectedSystems} />
-                    <HealthMetricsDashboard metrics={bodyEffectsData.healthMetrics} />
-                    <SideEffectsProfile
-                      effects={bodyEffectsData.sideEffects}
-                      overallAssessment={bodyEffectsData.overallAssessment}
-                    />
-                  </div>
+                {activeTab === 'side-effects' && (
+                  <SideEffectsTab
+                    targets={result.known_targets}
+                    pathways={result.pathways}
+                    compoundName={result.ingredient_name}
+                  />
+                )}
+
+                {activeTab === 'drug-interactions' && (
+                  <DrugInteractionsTab
+                    targets={result.known_targets}
+                    pathways={result.pathways}
+                    compoundName={result.ingredient_name}
+                  />
                 )}
               </div>
 

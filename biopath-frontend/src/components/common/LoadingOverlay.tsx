@@ -15,7 +15,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ compoundName }) 
           Analyzing {compoundName || 'compound'}...
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-          This may take about 30 seconds
+          This may take around 1 minute
         </p>
         <div className="mt-6 space-y-2 text-left">
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">

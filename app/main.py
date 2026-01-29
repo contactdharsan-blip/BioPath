@@ -18,6 +18,7 @@ from app.models.schemas import (
 )
 from app.services.analysis import AnalysisService
 from app.tasks.celery_tasks import analyze_ingredient_task, celery_app
+from app.clients.reactome import ReactomeClient
 
 # Configure logging
 logging.basicConfig(
@@ -235,6 +236,143 @@ async def delete_job(job_id: str):
 async def list_jobs():
     """List all jobs"""
     return {"jobs": list(jobs_store.values())}
+
+
+# ============================================
+# Reactome API Endpoints
+# ============================================
+
+@app.get("/api/reactome/pathway/{pathway_id}")
+async def get_pathway_details(pathway_id: str):
+    """
+    Get detailed information about a Reactome pathway.
+
+    Args:
+        pathway_id: Reactome stable identifier (e.g., "R-HSA-211859")
+
+    Returns:
+        Pathway details including name, description, species, and URL
+    """
+    try:
+        client = ReactomeClient()
+        details = client.get_pathway_details(pathway_id)
+
+        if not details:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Pathway {pathway_id} not found"
+            )
+
+        return details
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching pathway details: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch pathway details: {str(e)}"
+        )
+
+
+@app.get("/api/reactome/pathway/{pathway_id}/participants")
+async def get_pathway_participants(pathway_id: str):
+    """
+    Get all participants (proteins/genes) in a Reactome pathway.
+
+    Args:
+        pathway_id: Reactome stable identifier
+
+    Returns:
+        List of UniProt IDs for proteins involved in the pathway
+    """
+    try:
+        client = ReactomeClient()
+        participants = client.get_pathway_participants(pathway_id)
+
+        return {
+            "pathway_id": pathway_id,
+            "participant_count": len(participants),
+            "participants": participants
+        }
+    except Exception as e:
+        logger.error(f"Error fetching pathway participants: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch pathway participants: {str(e)}"
+        )
+
+
+@app.get("/api/reactome/pathway/{pathway_id}/related")
+async def get_related_pathways(pathway_id: str):
+    """
+    Get related pathways (parent/child relationships).
+
+    Args:
+        pathway_id: Reactome stable identifier
+
+    Returns:
+        List of related pathway IDs
+    """
+    try:
+        client = ReactomeClient()
+        related = client.get_related_pathways(pathway_id)
+
+        return {
+            "pathway_id": pathway_id,
+            "related_count": len(related),
+            "related_pathways": related
+        }
+    except Exception as e:
+        logger.error(f"Error fetching related pathways: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch related pathways: {str(e)}"
+        )
+
+
+@app.get("/api/reactome/pathway/{pathway_id}/full")
+async def get_full_pathway_info(pathway_id: str):
+    """
+    Get comprehensive information about a pathway including details,
+    participants, and related pathways.
+
+    Args:
+        pathway_id: Reactome stable identifier
+
+    Returns:
+        Complete pathway information
+    """
+    try:
+        client = ReactomeClient()
+
+        # Fetch all information
+        details = client.get_pathway_details(pathway_id)
+        participants = client.get_pathway_participants(pathway_id)
+        related = client.get_related_pathways(pathway_id)
+
+        if not details:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Pathway {pathway_id} not found"
+            )
+
+        return {
+            **details,
+            "participant_count": len(participants),
+            "participants": participants[:20],  # Limit to first 20
+            "has_more_participants": len(participants) > 20,
+            "total_participants": len(participants),
+            "related_pathway_count": len(related),
+            "related_pathways": related[:10],  # Limit to first 10
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching full pathway info: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch pathway information: {str(e)}"
+        )
 
 
 # Exception handlers

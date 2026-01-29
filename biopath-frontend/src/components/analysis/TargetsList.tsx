@@ -9,11 +9,21 @@ interface TargetsListProps {
   targets: TargetEvidence[];
 }
 
+// Organ types for visualization
+type OrganId = 'brain' | 'heart' | 'lungs' | 'liver' | 'stomach' | 'kidneys' | 'joints' | 'blood';
+type EffectType = 'therapeutic' | 'adverse' | 'neutral';
+
+interface OrganEffect {
+  organ: OrganId;
+  effectType: EffectType;
+  label: string;
+}
+
 // Body effects database for common protein targets
 const getTargetBodyEffects = (targetName: string, targetId: string): {
   systems: string[];
+  organs: OrganEffect[];
   effects: { metric: string; effect: string; direction: 'increase' | 'decrease' | 'modulate' }[];
-  mechanism: string;
 } => {
   const targetLower = targetName.toLowerCase();
 
@@ -21,6 +31,12 @@ const getTargetBodyEffects = (targetName: string, targetId: string): {
   if (targetLower.includes('cyclooxygenase') || targetLower.includes('prostaglandin') || targetId === 'P23219' || targetId === 'P35354') {
     return {
       systems: ['Inflammatory Response', 'Pain Signaling', 'Cardiovascular', 'Gastrointestinal'],
+      organs: [
+        { organ: 'joints', effectType: 'therapeutic', label: 'Reduces pain & inflammation' },
+        { organ: 'stomach', effectType: 'adverse', label: 'May reduce protection' },
+        { organ: 'heart', effectType: 'neutral', label: 'Affects platelet function' },
+        { organ: 'kidneys', effectType: 'neutral', label: 'May affect blood flow' },
+      ],
       effects: [
         { metric: 'Prostaglandin Production', effect: 'Reduces inflammatory prostaglandins', direction: 'decrease' },
         { metric: 'Pain Perception', effect: 'Decreases pain signaling', direction: 'decrease' },
@@ -28,7 +44,6 @@ const getTargetBodyEffects = (targetName: string, targetId: string): {
         { metric: 'Platelet Aggregation', effect: 'May affect blood clotting', direction: 'modulate' },
         { metric: 'Gastric Protection', effect: 'May reduce stomach lining protection', direction: 'decrease' },
       ],
-      mechanism: 'Inhibition blocks the conversion of arachidonic acid to prostaglandins, reducing inflammation and pain.',
     };
   }
 
@@ -36,12 +51,16 @@ const getTargetBodyEffects = (targetName: string, targetId: string): {
   if (targetLower.includes('lipoxygenase') || targetId === 'P09917') {
     return {
       systems: ['Inflammatory Response', 'Immune System', 'Respiratory'],
+      organs: [
+        { organ: 'lungs', effectType: 'therapeutic', label: 'Reduces airway inflammation' },
+        { organ: 'joints', effectType: 'therapeutic', label: 'Anti-inflammatory' },
+        { organ: 'blood', effectType: 'neutral', label: 'Affects immune cells' },
+      ],
       effects: [
         { metric: 'Leukotriene Production', effect: 'Modulates leukotriene synthesis', direction: 'modulate' },
         { metric: 'Airway Inflammation', effect: 'Affects bronchial constriction', direction: 'modulate' },
         { metric: 'Allergic Response', effect: 'Influences allergic reactions', direction: 'modulate' },
       ],
-      mechanism: 'Affects leukotriene pathway, influencing inflammatory and allergic responses.',
     };
   }
 
@@ -49,12 +68,14 @@ const getTargetBodyEffects = (targetName: string, targetId: string): {
   if (targetLower.includes('cytochrome') || targetLower.includes('cyp') || targetId.startsWith('P11')) {
     return {
       systems: ['Drug Metabolism', 'Liver Function', 'Detoxification'],
+      organs: [
+        { organ: 'liver', effectType: 'neutral', label: 'Primary metabolism site' },
+      ],
       effects: [
         { metric: 'Drug Metabolism', effect: 'Alters drug processing speed', direction: 'modulate' },
         { metric: 'Drug Interactions', effect: 'May affect other medication levels', direction: 'modulate' },
         { metric: 'Liver Enzyme Activity', effect: 'Influences hepatic function', direction: 'modulate' },
       ],
-      mechanism: 'Interaction with CYP450 enzymes affects how drugs are metabolized in the liver.',
     };
   }
 
@@ -62,11 +83,14 @@ const getTargetBodyEffects = (targetName: string, targetId: string): {
   if (targetLower.includes('aldo-keto') || targetLower.includes('reductase')) {
     return {
       systems: ['Steroid Metabolism', 'Prostaglandin Metabolism', 'Detoxification'],
+      organs: [
+        { organ: 'liver', effectType: 'neutral', label: 'Metabolic processing' },
+        { organ: 'kidneys', effectType: 'neutral', label: 'Steroid metabolism' },
+      ],
       effects: [
         { metric: 'Steroid Levels', effect: 'Modulates steroid hormone metabolism', direction: 'modulate' },
         { metric: 'Prostaglandin Levels', effect: 'Affects prostaglandin inactivation', direction: 'modulate' },
       ],
-      mechanism: 'Involved in the metabolism of steroids and prostaglandins.',
     };
   }
 
@@ -74,11 +98,14 @@ const getTargetBodyEffects = (targetName: string, targetId: string): {
   if (targetLower.includes('phospholipase')) {
     return {
       systems: ['Cell Signaling', 'Inflammatory Response', 'Membrane Function'],
+      organs: [
+        { organ: 'joints', effectType: 'therapeutic', label: 'Reduces inflammation' },
+        { organ: 'blood', effectType: 'neutral', label: 'Cell membrane effects' },
+      ],
       effects: [
         { metric: 'Arachidonic Acid Release', effect: 'Affects inflammatory precursor release', direction: 'modulate' },
         { metric: 'Cell Membrane Integrity', effect: 'Influences membrane composition', direction: 'modulate' },
       ],
-      mechanism: 'Releases fatty acids from cell membranes, affecting downstream signaling.',
     };
   }
 
@@ -86,34 +113,130 @@ const getTargetBodyEffects = (targetName: string, targetId: string): {
   if (targetLower.includes('kinase')) {
     return {
       systems: ['Cell Signaling', 'Cell Growth', 'Metabolism'],
+      organs: [
+        { organ: 'brain', effectType: 'neutral', label: 'Cell signaling' },
+        { organ: 'heart', effectType: 'neutral', label: 'Growth regulation' },
+      ],
       effects: [
         { metric: 'Cell Proliferation', effect: 'Modulates cell growth signals', direction: 'modulate' },
         { metric: 'Protein Phosphorylation', effect: 'Affects cellular signaling cascades', direction: 'modulate' },
       ],
-      mechanism: 'Phosphorylates proteins to regulate cellular processes.',
     };
   }
 
-  // Ion channels
+  // Ion channels and receptors
   if (targetLower.includes('channel') || targetLower.includes('receptor')) {
     return {
       systems: ['Nervous System', 'Cell Signaling', 'Muscle Function'],
+      organs: [
+        { organ: 'brain', effectType: 'therapeutic', label: 'Neural signaling' },
+        { organ: 'heart', effectType: 'neutral', label: 'Muscle function' },
+      ],
       effects: [
         { metric: 'Neural Signaling', effect: 'Modulates nerve impulse transmission', direction: 'modulate' },
         { metric: 'Cellular Excitability', effect: 'Affects cell responsiveness', direction: 'modulate' },
       ],
-      mechanism: 'Modulates ion flow or receptor activation affecting cell signaling.',
     };
   }
 
   // Default for unknown targets
   return {
     systems: ['Cellular Function'],
+    organs: [
+      { organ: 'blood', effectType: 'neutral', label: 'Systemic effects' },
+    ],
     effects: [
       { metric: 'Protein Activity', effect: 'Modulates target protein function', direction: 'modulate' },
     ],
-    mechanism: 'Interacts with target protein, potentially affecting its normal function.',
   };
+};
+
+// Mini organ diagram component
+const MiniOrganDiagram: React.FC<{ organs: OrganEffect[] }> = ({ organs }) => {
+  const organMap = new Map(organs.map(o => [o.organ, o]));
+
+  const getOrganColor = (organ: OrganId) => {
+    const effect = organMap.get(organ);
+    if (!effect) return { fill: 'fill-gray-200 dark:fill-gray-700', stroke: 'stroke-gray-300 dark:stroke-gray-600' };
+    switch (effect.effectType) {
+      case 'therapeutic':
+        return { fill: 'fill-green-400/50 dark:fill-green-500/40', stroke: 'stroke-green-500 dark:stroke-green-400' };
+      case 'adverse':
+        return { fill: 'fill-red-400/50 dark:fill-red-500/40', stroke: 'stroke-red-500 dark:stroke-red-400' };
+      default:
+        return { fill: 'fill-yellow-400/50 dark:fill-yellow-500/40', stroke: 'stroke-yellow-500 dark:stroke-yellow-400' };
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-4">
+      {/* SVG Body Diagram */}
+      <svg viewBox="0 0 120 180" className="w-24 h-36 flex-shrink-0">
+        {/* Head outline */}
+        <ellipse cx="60" cy="22" rx="18" ry="18" className="fill-gray-100 dark:fill-gray-800 stroke-gray-300 dark:stroke-gray-600" strokeWidth="1" />
+
+        {/* Brain */}
+        <ellipse cx="60" cy="20" rx="12" ry="10" className={clsx(getOrganColor('brain').fill, getOrganColor('brain').stroke, 'stroke-2 transition-colors')} />
+
+        {/* Neck */}
+        <rect x="54" y="38" width="12" height="10" className="fill-gray-100 dark:fill-gray-800 stroke-gray-300 dark:stroke-gray-600" strokeWidth="1" />
+
+        {/* Torso */}
+        <path d="M30 48 Q30 46 40 46 L80 46 Q90 46 90 48 L90 120 Q90 125 80 125 L40 125 Q30 125 30 120 Z" className="fill-gray-100 dark:fill-gray-800 stroke-gray-300 dark:stroke-gray-600" strokeWidth="1" />
+
+        {/* Lungs */}
+        <ellipse cx="45" cy="65" rx="10" ry="14" className={clsx(getOrganColor('lungs').fill, getOrganColor('lungs').stroke, 'stroke-2 transition-colors')} />
+        <ellipse cx="75" cy="65" rx="10" ry="14" className={clsx(getOrganColor('lungs').fill, getOrganColor('lungs').stroke, 'stroke-2 transition-colors')} />
+
+        {/* Heart */}
+        <ellipse cx="60" cy="68" rx="8" ry="8" className={clsx(getOrganColor('heart').fill, getOrganColor('heart').stroke, 'stroke-2 transition-colors')} />
+
+        {/* Liver */}
+        <ellipse cx="48" cy="88" rx="12" ry="8" className={clsx(getOrganColor('liver').fill, getOrganColor('liver').stroke, 'stroke-2 transition-colors')} />
+
+        {/* Stomach */}
+        <ellipse cx="70" cy="92" rx="10" ry="7" className={clsx(getOrganColor('stomach').fill, getOrganColor('stomach').stroke, 'stroke-2 transition-colors')} />
+
+        {/* Kidneys */}
+        <ellipse cx="42" cy="105" rx="6" ry="8" className={clsx(getOrganColor('kidneys').fill, getOrganColor('kidneys').stroke, 'stroke-2 transition-colors')} />
+        <ellipse cx="78" cy="105" rx="6" ry="8" className={clsx(getOrganColor('kidneys').fill, getOrganColor('kidneys').stroke, 'stroke-2 transition-colors')} />
+
+        {/* Legs for joints */}
+        <path d="M40 125 L38 165 L35 170 L45 170 L43 165 L50 125" className="fill-gray-100 dark:fill-gray-800 stroke-gray-300 dark:stroke-gray-600" strokeWidth="1" />
+        <path d="M80 125 L82 165 L85 170 L75 170 L77 165 L70 125" className="fill-gray-100 dark:fill-gray-800 stroke-gray-300 dark:stroke-gray-600" strokeWidth="1" />
+
+        {/* Joints (knees) */}
+        <circle cx="40" cy="145" r="5" className={clsx(getOrganColor('joints').fill, getOrganColor('joints').stroke, 'stroke-2 transition-colors')} />
+        <circle cx="80" cy="145" r="5" className={clsx(getOrganColor('joints').fill, getOrganColor('joints').stroke, 'stroke-2 transition-colors')} />
+
+        {/* Blood indicator (small circle) */}
+        {organMap.has('blood') && (
+          <circle cx="100" cy="68" r="6" className={clsx(getOrganColor('blood').fill, getOrganColor('blood').stroke, 'stroke-2 transition-colors')} />
+        )}
+      </svg>
+
+      {/* Organ Legend */}
+      <div className="flex-1 space-y-1.5">
+        {organs.map((organ, i) => (
+          <div key={i} className="flex items-center gap-2 text-xs">
+            <div className={clsx(
+              'w-2.5 h-2.5 rounded-full flex-shrink-0',
+              organ.effectType === 'therapeutic' && 'bg-green-500',
+              organ.effectType === 'adverse' && 'bg-red-500',
+              organ.effectType === 'neutral' && 'bg-yellow-500'
+            )} />
+            <span className="font-medium text-gray-700 dark:text-gray-300 capitalize">{organ.organ}:</span>
+            <span className="text-gray-500 dark:text-gray-400">{organ.label}</span>
+          </div>
+        ))}
+        <div className="pt-2 flex gap-3 text-[10px] text-gray-400 dark:text-gray-500">
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> Therapeutic</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500" /> Neutral</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Caution</span>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export const TargetsList: React.FC<TargetsListProps> = ({ targets }) => {
@@ -315,17 +438,17 @@ export const TargetsList: React.FC<TargetsListProps> = ({ targets }) => {
                     </div>
                   </div>
 
-                  {/* Mechanism of Action */}
+                  {/* Affected Organs Visualization */}
                   <div>
-                    <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                    <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                       <svg className="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
-                      Mechanism of Action
+                      Affected Organs
                     </h5>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
-                      {bodyEffects.mechanism}
-                    </p>
+                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                      <MiniOrganDiagram organs={bodyEffects.organs} />
+                    </div>
                   </div>
                 </div>
               )}

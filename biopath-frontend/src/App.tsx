@@ -8,6 +8,7 @@ import { MoleculeViewer } from './components/analysis/MoleculeViewer';
 import { SideEffectsTab } from './components/analysis/SideEffectsTab';
 import { DrugInteractionsTab } from './components/analysis/DrugInteractionsTab';
 import { LoadingOverlay } from './components/common/LoadingOverlay';
+import { LicensesModal } from './components/common/LicensesModal';
 import { useAnalysisSync } from './hooks/useAnalysisSync';
 import { useTheme } from './hooks/useTheme';
 import type { IngredientInput, BodyImpactReport } from './api/types';
@@ -26,6 +27,7 @@ function App() {
   const [result, setResult] = useState<BodyImpactReport | null>(null);
   const [submittedIngredient, setSubmittedIngredient] = useState<string>('');
   const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [showLicenses, setShowLicenses] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
   const { mutate: analyzeCompound, isPending } = useAnalysisSync();
@@ -257,13 +259,27 @@ function App() {
         {/* Footer */}
         <footer className="mt-16 text-center text-sm text-gray-500 dark:text-gray-400">
           <p>
+            Created by <span className="font-medium text-gray-700 dark:text-gray-300">Dharsan Kesavan</span>
+          </p>
+          <p className="mt-1">
             Powered by PubChem, ChEMBL, and Reactome
           </p>
           <p className="mt-1">
             For research purposes only - Not medical advice
           </p>
+          <p className="mt-2">
+            <button
+              onClick={() => setShowLicenses(true)}
+              className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 underline"
+            >
+              Licenses & Attributions
+            </button>
+          </p>
         </footer>
       </div>
+
+      {/* Licenses Modal */}
+      <LicensesModal isOpen={showLicenses} onClose={() => setShowLicenses(false)} />
     </div>
   );
 }

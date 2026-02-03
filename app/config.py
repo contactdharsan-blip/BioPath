@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     enable_docking_plugin: bool = False
     docking_plugin_path: Optional[str] = None
 
+    # PlantNet API (for plant identification from images)
+    plantnet_api_key: Optional[str] = None
+
     # Scoring weights
     measured_target_weight: float = 1.0
     predicted_target_weight: float = 0.3

@@ -1,15 +1,15 @@
 # Multi-stage Dockerfile for BioPath with integrated frontend
 
 # Stage 1: Build Frontend
-FROM node:20-alpine as frontend-builder
+FROM node:20-alpine AS frontend-builder
 
 WORKDIR /frontend
 
 # Copy frontend files
 COPY biopath-frontend/package.json biopath-frontend/package-lock.json* ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies - delete lock file to fix ARM64 rollup issue
+RUN rm -f package-lock.json && npm install
 
 # Copy rest of frontend code
 COPY biopath-frontend/ ./
@@ -18,7 +18,7 @@ COPY biopath-frontend/ ./
 RUN npm run build
 
 # Stage 2: Python Backend
-FROM continuumio/miniconda3:latest as base
+FROM continuumio/miniconda3:latest AS base
 
 # Set working directory
 WORKDIR /app

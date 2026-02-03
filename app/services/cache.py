@@ -1,8 +1,7 @@
 """Caching service for API responses"""
 
-import json
 import hashlib
-from typing import Any, Optional
+from typing import Any, Optional, List, Dict
 from diskcache import Cache
 import logging
 
@@ -88,6 +87,42 @@ class CacheService:
             logger.info("Cache cleared")
         except Exception as e:
             logger.error(f"Cache clear error: {e}")
+
+    def get_many(self, prefix: str, identifiers: List[str]) -> Dict[str, Any]:
+        """
+        Batch retrieve cached values.
+
+        Args:
+            prefix: Cache namespace
+            identifiers: List of identifiers to retrieve
+
+        Returns:
+            Dict mapping identifier -> cached value (only for hits)
+        """
+        results = {}
+        for identifier in identifiers:
+            value = self.get(prefix, identifier)
+            if value is not None:
+                results[identifier] = value
+        return results
+
+    def set_many(self, prefix: str, items: Dict[str, Any], ttl: Optional[int] = None) -> int:
+        """
+        Batch store values in cache.
+
+        Args:
+            prefix: Cache namespace
+            items: Dict mapping identifier -> value
+            ttl: Time-to-live in seconds
+
+        Returns:
+            Number of successfully cached items
+        """
+        success_count = 0
+        for identifier, value in items.items():
+            if self.set(prefix, identifier, value, ttl):
+                success_count += 1
+        return success_count
 
 
 # Global cache instance

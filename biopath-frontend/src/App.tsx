@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { AnalysisForm } from './components/analysis/AnalysisForm';
+import { PlantIdentification } from './components/analysis/PlantIdentification';
+import { PlantAnalysisResults } from './components/analysis/PlantAnalysisResults';
 import { CompoundInfo } from './components/analysis/CompoundInfo';
 import { SummaryCard } from './components/analysis/SummaryCard';
 import { TargetsList } from './components/analysis/TargetsList';
@@ -11,11 +13,12 @@ import { LoadingOverlay } from './components/common/LoadingOverlay';
 import { LicensesModal } from './components/common/LicensesModal';
 import { useAnalysisSync } from './hooks/useAnalysisSync';
 import { useTheme } from './hooks/useTheme';
-import type { IngredientInput, BodyImpactReport } from './api/types';
+import type { IngredientInput, BodyImpactReport, PlantAnalysisResponse } from './api/types';
 import clsx from 'clsx';
 import './App.css';
 
 type TabId = 'overview' | '3d-structure' | 'targets' | 'pathways' | 'side-effects' | 'drug-interactions';
+type AnalysisMode = 'compound' | 'plant';
 
 interface Tab {
   id: TabId;
@@ -24,10 +27,13 @@ interface Tab {
 }
 
 function App() {
+  const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('compound');
   const [result, setResult] = useState<BodyImpactReport | null>(null);
+  const [plantResult, setPlantResult] = useState<PlantAnalysisResponse | null>(null);
   const [submittedIngredient, setSubmittedIngredient] = useState<string>('');
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [showLicenses, setShowLicenses] = useState(false);
+  const [plantLoading, setPlantLoading] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
   const { mutate: analyzeCompound, isPending } = useAnalysisSync();
@@ -50,8 +56,24 @@ function App() {
 
   const handleNewAnalysis = () => {
     setResult(null);
+    setPlantResult(null);
     setSubmittedIngredient('');
     setActiveTab('overview');
+  };
+
+  const handlePlantAnalysisComplete = (plantData: PlantAnalysisResponse) => {
+    setPlantResult(plantData);
+  };
+
+  const handlePlantError = (error: string) => {
+    alert(`Error: ${error}`);
+  };
+
+  const handleModeChange = (mode: AnalysisMode) => {
+    setAnalysisMode(mode);
+    setResult(null);
+    setPlantResult(null);
+    setSubmittedIngredient('');
   };
 
   const tabs: Tab[] = [
@@ -114,7 +136,7 @@ function App() {
 
   return (
     <div className="min-h-screen gradient-bg transition-colors duration-200">
-      {isPending && <LoadingOverlay compoundName={submittedIngredient} />}
+      {(isPending || plantLoading) && <LoadingOverlay compoundName={submittedIngredient || 'plant'} />}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -142,10 +164,58 @@ function App() {
           </p>
         </header>
 
+        {/* Mode Selector - only show when no results */}
+        {!result && !plantResult && (
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+              <button
+                onClick={() => handleModeChange('compound')}
+                className={clsx(
+                  'px-6 py-2 rounded-lg text-sm font-medium transition-all',
+                  analysisMode === 'compound'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                )}
+              >
+                <span className="mr-2">💊</span>
+                Compound Search
+              </button>
+              <button
+                onClick={() => handleModeChange('plant')}
+                className={clsx(
+                  'px-6 py-2 rounded-lg text-sm font-medium transition-all',
+                  analysisMode === 'plant'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                )}
+              >
+                <span className="mr-2">🌿</span>
+                Plant Photo
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Main Content */}
         <main>
-          {!result ? (
-            <AnalysisForm onSubmit={handleAnalyze} isLoading={isPending} />
+          {/* Plant Analysis Results */}
+          {plantResult ? (
+            <PlantAnalysisResults
+              result={plantResult}
+              onNewAnalysis={handleNewAnalysis}
+            />
+          ) : !result ? (
+            /* Input Forms */
+            analysisMode === 'compound' ? (
+              <AnalysisForm onSubmit={handleAnalyze} isLoading={isPending} />
+            ) : (
+              <PlantIdentification
+                onAnalysisComplete={handlePlantAnalysisComplete}
+                onError={handlePlantError}
+                isLoading={plantLoading}
+                setIsLoading={setPlantLoading}
+              />
+            )
           ) : (
             <div className="space-y-6">
               {/* Summary always visible */}
@@ -262,7 +332,7 @@ function App() {
             Created by <span className="font-medium text-gray-700 dark:text-gray-300">Dharsan Kesavan</span>
           </p>
           <p className="mt-1">
-            Powered by PubChem, ChEMBL, Reactome, and Open Targets
+            Powered by PubChem, ChEMBL, Reactome, Open Targets, and PlantNet
           </p>
           <p className="mt-1">
             For research purposes only - Not medical advice

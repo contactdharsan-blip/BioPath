@@ -144,3 +144,92 @@ export interface PubChemAutocompleteResponse {
     compound: string[];
   };
 }
+
+// Plant Identification types
+export interface PlantCompound {
+  name: string;
+  chembl_id?: string;
+  cas_number?: string;
+}
+
+export interface PlantIdentificationRequest {
+  image_base64: string;
+  organs?: string[];
+}
+
+export interface PlantAnalysisRequest {
+  image_base64: string;
+  organs?: string[];
+  max_compounds?: number;
+  enable_predictions?: boolean;
+}
+
+export interface PlantIdentificationResponse {
+  success: boolean;
+  scientific_name?: string;
+  common_names?: string[];
+  family?: string;
+  confidence?: number;
+  in_database?: boolean;
+  compounds?: PlantCompound[];
+  traditional_uses?: string[];
+  parts_used?: string[];
+  error?: string;
+}
+
+export interface CompoundAnalysis {
+  compound_name: string;
+  targets_found: number;
+  pathways_found: number;
+  top_pathways: {
+    name: string;
+    impact_score: number;
+    url: string;
+  }[];
+}
+
+export interface AggregatePathway {
+  pathway_id: string;
+  pathway_name: string;
+  pathway_url: string;
+  aggregate_score: number;
+  max_impact: number;
+  num_compounds: number;
+  compounds: string[];
+  confidence_tier: string;
+}
+
+export interface PlantAnalysisSummary {
+  plant_identified: string;
+  common_names: string[];
+  family: string;
+  identification_confidence: number;
+  compounds_analyzed: number;
+  compound_names: string[];
+  total_targets_found: number;
+  total_pathways_affected: number;
+  traditional_uses: string[];
+  top_pathways: {
+    name: string;
+    score: number;
+    compounds_involved: string[];
+  }[];
+  disclaimer: string;
+  warning?: string;
+  error?: string;
+}
+
+export interface PlantAnalysisResponse {
+  identification: {
+    success: boolean;
+    scientific_name?: string;
+    common_names?: string[];
+    family?: string;
+    confidence?: number;
+    error?: string;
+  };
+  compounds_found: PlantCompound[];
+  compound_analyses: CompoundAnalysis[];
+  aggregate_pathways: AggregatePathway[];
+  summary: PlantAnalysisSummary;
+}

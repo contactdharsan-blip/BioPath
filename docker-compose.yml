@@ -33,12 +33,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    command: >
-      conda run -n biopath
-      uvicorn app.main:app
-      --host 0.0.0.0
-      --port 8000
-      --timeout-keep-alive 120
+    command: /opt/conda/envs/biopath/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 120 --workers 4
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -62,11 +57,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    command: >
-      conda run -n biopath
-      celery -A app.tasks.celery_tasks worker
-      --loglevel=info
-      --concurrency=2
+    command: /opt/conda/envs/biopath/bin/celery -A app.tasks.celery_tasks worker --loglevel=info --concurrency=2
 
   # Optional: Flower for Celery monitoring
   flower:
@@ -82,10 +73,7 @@ services:
     depends_on:
       - redis
       - celery-worker
-    command: >
-      conda run -n biopath
-      celery -A app.tasks.celery_tasks flower
-      --port=5555
+    command: /opt/conda/envs/biopath/bin/celery -A app.tasks.celery_tasks flower --port=5555
 
 volumes:
   redis_data:

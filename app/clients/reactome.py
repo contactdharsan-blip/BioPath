@@ -7,7 +7,8 @@ import logging
 
 from app.config import settings
 from app.models.schemas import ProvenanceRecord
-from app.utils import RateLimiter
+from app.utils import RateLimiter, fetch_concurrent
+from app.services.cache import cache_service
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +165,7 @@ class ReactomeClient:
 
     def get_pathway_details(self, pathway_id: str) -> Dict[str, Any]:
         """
-        Get detailed information about a pathway.
+        Get detailed information about a pathway with caching.
 
         Args:
             pathway_id: Reactome stable identifier (e.g., "R-HSA-211859")
@@ -172,11 +173,17 @@ class ReactomeClient:
         Returns:
             Pathway details dict
         """
+        # Check cache first
+        cached = cache_service.get("pathway_details", pathway_id)
+        if cached:
+            logger.debug(f"Cache hit for pathway details: {pathway_id}")
+            return cached
+
         try:
             url = f"{self.base_url}/data/query/{pathway_id}"
             data = self._get(url)
 
-            return {
+            result = {
                 "pathway_id": data.get("stId"),
                 "pathway_name": data.get("displayName"),
                 "pathway_species": data.get("speciesName"),
@@ -185,13 +192,17 @@ class ReactomeClient:
                 "url": f"https://reactome.org/content/detail/{pathway_id}",
             }
 
+            # Cache the result
+            cache_service.set("pathway_details", pathway_id, result)
+            return result
+
         except Exception as e:
             logger.error(f"Error getting pathway details for {pathway_id}: {e}")
             return {}
 
     def get_pathway_participants(self, pathway_id: str) -> List[str]:
         """
-        Get all participants (proteins/genes) in a pathway.
+        Get all participants (proteins/genes) in a pathway with caching.
 
         Args:
             pathway_id: Reactome stable identifier
@@ -199,6 +210,12 @@ class ReactomeClient:
         Returns:
             List of UniProt IDs
         """
+        # Check cache first
+        cached = cache_service.get("pathway_participants", pathway_id)
+        if cached:
+            logger.debug(f"Cache hit for pathway participants: {pathway_id}")
+            return cached
+
         try:
             url = f"{self.base_url}/data/participants/{pathway_id}"
             participants = self._get(url)
@@ -220,6 +237,9 @@ class ReactomeClient:
 
             result = list(set(uniprot_ids))  # Remove duplicates
             logger.info(f"Found {len(result)} UniProt IDs in pathway {pathway_id}")
+
+            # Cache the result
+            cache_service.set("pathway_participants", pathway_id, result)
             return result
 
         except Exception as e:
@@ -245,3 +265,46 @@ class ReactomeClient:
         except Exception as e:
             logger.error(f"Error getting related pathways for {pathway_id}: {e}")
             return []
+
+    def get_pathway_participants_batch(
+        self,
+        pathway_ids: List[str],
+        max_workers: int = 5
+    ) -> Dict[str, List[str]]:
+        """
+        Get participants for multiple pathways concurrently with caching.
+
+        Args:
+            pathway_ids: List of Reactome pathway IDs
+            max_workers: Maximum concurrent requests
+
+        Returns:
+            Dict mapping pathway_id -> list of UniProt IDs
+        """
+        results = {}
+
+        if not pathway_ids:
+            return results
+
+        # Step 1: Check cache for all pathways
+        cached = cache_service.get_many("pathway_participants", pathway_ids)
+        results.update(cached)
+
+        # Step 2: Identify cache misses
+        missing_ids = [pid for pid in pathway_ids if pid not in cached]
+
+        if not missing_ids:
+            logger.info(f"All {len(pathway_ids)} pathway participants found in cache")
+            return results
+
+        logger.info(f"Pathway participants - cache hit: {len(cached)}, fetching: {len(missing_ids)}")
+
+        # Step 3: Fetch missing pathways concurrently
+        newly_fetched = fetch_concurrent(
+            self.get_pathway_participants,
+            missing_ids,
+            max_workers=max_workers
+        )
+
+        results.update(newly_fetched)
+        return results

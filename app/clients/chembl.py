@@ -6,8 +6,174 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 import logging
 
 from app.config import settings
-from app.models.schemas import TargetEvidence, AssayReference, ProvenanceRecord, ConfidenceTier
+from app.models.schemas import TargetEvidence, AssayReference, ProvenanceRecord, ConfidenceTier, PathwayMatch
 from app.utils import RateLimiter
+from app.services.cache import cache_service
+
+# Disease/indication to biological pathway mapping
+# Maps common disease categories to Reactome pathway IDs and biological systems
+INDICATION_PATHWAY_MAP = {
+    # Inflammatory conditions
+    "inflammation": {
+        "pathways": ["R-HSA-6783783", "R-HSA-449147"],
+        "pathway_names": ["Interleukin-10 signaling", "Signaling by Interleukins"],
+        "system": "Immune System"
+    },
+    "arthritis": {
+        "pathways": ["R-HSA-6783783", "R-HSA-168256"],
+        "pathway_names": ["Interleukin-10 signaling", "Immune System"],
+        "system": "Immune/Musculoskeletal"
+    },
+    "pain": {
+        "pathways": ["R-HSA-2672351", "R-HSA-418594"],
+        "pathway_names": ["Arachidonic acid metabolism", "G alpha (i) signalling events"],
+        "system": "Nervous System"
+    },
+    # Cardiovascular
+    "hypertension": {
+        "pathways": ["R-HSA-418594", "R-HSA-416476"],
+        "pathway_names": ["G alpha (i) signalling events", "G alpha (q) signalling events"],
+        "system": "Cardiovascular"
+    },
+    "heart": {
+        "pathways": ["R-HSA-5576891", "R-HSA-397014"],
+        "pathway_names": ["Cardiac conduction", "Muscle contraction"],
+        "system": "Cardiovascular"
+    },
+    "atherosclerosis": {
+        "pathways": ["R-HSA-8957322", "R-HSA-556833"],
+        "pathway_names": ["Cholesterol biosynthesis", "Metabolism of lipids"],
+        "system": "Cardiovascular"
+    },
+    # Neurological/Psychiatric
+    "depression": {
+        "pathways": ["R-HSA-112316", "R-HSA-390651"],
+        "pathway_names": ["Neuronal System", "Dopamine Neurotransmitter Release Cycle"],
+        "system": "Nervous System"
+    },
+    "anxiety": {
+        "pathways": ["R-HSA-112316", "R-HSA-977443"],
+        "pathway_names": ["Neuronal System", "GABA receptor activation"],
+        "system": "Nervous System"
+    },
+    "schizophrenia": {
+        "pathways": ["R-HSA-390651", "R-HSA-112316"],
+        "pathway_names": ["Dopamine Neurotransmitter Release Cycle", "Neuronal System"],
+        "system": "Nervous System"
+    },
+    "epilepsy": {
+        "pathways": ["R-HSA-112316", "R-HSA-1296071"],
+        "pathway_names": ["Neuronal System", "Potassium Channels"],
+        "system": "Nervous System"
+    },
+    "alzheimer": {
+        "pathways": ["R-HSA-112316", "R-HSA-8863678"],
+        "pathway_names": ["Neuronal System", "Neurodegenerative Diseases"],
+        "system": "Nervous System"
+    },
+    "parkinson": {
+        "pathways": ["R-HSA-390651", "R-HSA-8863678"],
+        "pathway_names": ["Dopamine Neurotransmitter Release Cycle", "Neurodegenerative Diseases"],
+        "system": "Nervous System"
+    },
+    # Cancer/Oncology
+    "cancer": {
+        "pathways": ["R-HSA-1643685", "R-HSA-5663202"],
+        "pathway_names": ["Disease", "Diseases of signal transduction by growth factor receptors"],
+        "system": "Cell Growth/Oncology"
+    },
+    "tumor": {
+        "pathways": ["R-HSA-1643685", "R-HSA-212436"],
+        "pathway_names": ["Disease", "Generic Transcription Pathway"],
+        "system": "Cell Growth/Oncology"
+    },
+    "leukemia": {
+        "pathways": ["R-HSA-1643685", "R-HSA-983169"],
+        "pathway_names": ["Disease", "Class I MHC mediated antigen processing"],
+        "system": "Hematology/Oncology"
+    },
+    # Metabolic
+    "diabetes": {
+        "pathways": ["R-HSA-422356", "R-HSA-163685"],
+        "pathway_names": ["Regulation of insulin secretion", "Integration of energy metabolism"],
+        "system": "Metabolic"
+    },
+    "obesity": {
+        "pathways": ["R-HSA-163685", "R-HSA-556833"],
+        "pathway_names": ["Integration of energy metabolism", "Metabolism of lipids"],
+        "system": "Metabolic"
+    },
+    "cholesterol": {
+        "pathways": ["R-HSA-8957322", "R-HSA-556833"],
+        "pathway_names": ["Cholesterol biosynthesis", "Metabolism of lipids"],
+        "system": "Metabolic"
+    },
+    # Respiratory
+    "asthma": {
+        "pathways": ["R-HSA-2672351", "R-HSA-449147"],
+        "pathway_names": ["Arachidonic acid metabolism", "Signaling by Interleukins"],
+        "system": "Respiratory"
+    },
+    "copd": {
+        "pathways": ["R-HSA-2672351", "R-HSA-168256"],
+        "pathway_names": ["Arachidonic acid metabolism", "Immune System"],
+        "system": "Respiratory"
+    },
+    # Gastrointestinal
+    "ulcer": {
+        "pathways": ["R-HSA-2672351", "R-HSA-418594"],
+        "pathway_names": ["Arachidonic acid metabolism", "G alpha (i) signalling events"],
+        "system": "Gastrointestinal"
+    },
+    "gastric": {
+        "pathways": ["R-HSA-2672351", "R-HSA-416476"],
+        "pathway_names": ["Arachidonic acid metabolism", "G alpha (q) signalling events"],
+        "system": "Gastrointestinal"
+    },
+    # Infectious
+    "infection": {
+        "pathways": ["R-HSA-168256", "R-HSA-1280218"],
+        "pathway_names": ["Immune System", "Adaptive Immune System"],
+        "system": "Immune System"
+    },
+    "bacterial": {
+        "pathways": ["R-HSA-168256", "R-HSA-1280218"],
+        "pathway_names": ["Immune System", "Adaptive Immune System"],
+        "system": "Immune System"
+    },
+    "viral": {
+        "pathways": ["R-HSA-168256", "R-HSA-913531"],
+        "pathway_names": ["Immune System", "Interferon Signaling"],
+        "system": "Immune System"
+    },
+    # Autoimmune
+    "autoimmune": {
+        "pathways": ["R-HSA-168256", "R-HSA-449147"],
+        "pathway_names": ["Immune System", "Signaling by Interleukins"],
+        "system": "Immune System"
+    },
+    "lupus": {
+        "pathways": ["R-HSA-168256", "R-HSA-913531"],
+        "pathway_names": ["Immune System", "Interferon Signaling"],
+        "system": "Immune System"
+    },
+    "psoriasis": {
+        "pathways": ["R-HSA-449147", "R-HSA-6783783"],
+        "pathway_names": ["Signaling by Interleukins", "Interleukin-10 signaling"],
+        "system": "Immune/Dermatology"
+    },
+    # Hormonal/Endocrine
+    "thyroid": {
+        "pathways": ["R-HSA-209968", "R-HSA-418555"],
+        "pathway_names": ["Thyroxine biosynthesis", "G alpha (s) signalling events"],
+        "system": "Endocrine"
+    },
+    "hormone": {
+        "pathways": ["R-HSA-418555", "R-HSA-9006931"],
+        "pathway_names": ["G alpha (s) signalling events", "Signaling by Nuclear Receptors"],
+        "system": "Endocrine"
+    },
+}
 
 logger = logging.getLogger(__name__)
 
@@ -166,10 +332,13 @@ class ChEMBLClient:
                         "document_chembl_id": activity.get("document_chembl_id"),
                     }
 
-            # Now get target details for each unique target
+            # Now get target details for all unique targets in batch (with caching)
+            target_chembl_ids = list(target_map.keys())
+            target_info_map = self._get_target_info_batch(target_chembl_ids)
+
             target_evidence = []
             for target_chembl_id, activity_data in target_map.items():
-                target_info = self._get_target_info(target_chembl_id)
+                target_info = target_info_map.get(target_chembl_id)
                 if not target_info:
                     continue
 
@@ -280,3 +449,187 @@ class ChEMBLClient:
             return False
         first_char = identifier[0].upper()
         return first_char in 'PQOABCDEFGHIJKLMNR' and identifier[1:].isalnum()
+
+    def _get_target_info_batch(self, target_chembl_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+        """
+        Get target details for multiple targets with caching.
+
+        Uses cache first, then fetches missing targets.
+
+        Args:
+            target_chembl_ids: List of ChEMBL target IDs
+
+        Returns:
+            Dict mapping target_chembl_id -> target_info dict
+        """
+        results = {}
+
+        if not target_chembl_ids:
+            return results
+
+        # Step 1: Check cache for all targets
+        cached_targets = cache_service.get_many("target_info", target_chembl_ids)
+        results.update(cached_targets)
+
+        # Step 2: Identify cache misses
+        missing_ids = [tid for tid in target_chembl_ids if tid not in cached_targets]
+
+        if not missing_ids:
+            logger.info(f"All {len(target_chembl_ids)} targets found in cache")
+            return results
+
+        logger.info(f"Target info cache hit: {len(cached_targets)}, fetching: {len(missing_ids)}")
+
+        # Step 3: Fetch missing targets
+        newly_fetched = {}
+        for target_id in missing_ids:
+            target_info = self._get_target_info(target_id)
+            if target_info:
+                newly_fetched[target_id] = target_info
+                results[target_id] = target_info
+
+        # Step 4: Cache newly fetched targets
+        if newly_fetched:
+            cache_service.set_many("target_info", newly_fetched)
+            logger.info(f"Cached {len(newly_fetched)} new target info records")
+
+        return results
+
+    def get_drug_indications(self, chembl_id: str) -> List[Dict[str, Any]]:
+        """
+        Get drug indications from ChEMBL with caching.
+
+        Args:
+            chembl_id: ChEMBL molecule ID (e.g., "CHEMBL521")
+
+        Returns:
+            List of indication dicts with efo_term, mesh_heading, max_phase_for_ind
+        """
+        cached = cache_service.get("drug_indications", chembl_id)
+        if cached:
+            logger.debug(f"Cache hit for drug indications: {chembl_id}")
+            return cached
+
+        try:
+            url = f"{self.base_url}/drug_indication.json?molecule_chembl_id={chembl_id}&limit=50"
+            data = self._get(url)
+
+            indications = data.get("drug_indications", [])
+            result = []
+
+            for ind in indications:
+                result.append({
+                    "efo_id": ind.get("efo_id"),
+                    "efo_term": ind.get("efo_term"),
+                    "mesh_id": ind.get("mesh_id"),
+                    "mesh_heading": ind.get("mesh_heading"),
+                    "max_phase": ind.get("max_phase_for_ind"),
+                })
+
+            cache_service.set("drug_indications", chembl_id, result)
+            logger.info(f"Found {len(result)} indications for {chembl_id}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error getting drug indications for {chembl_id}: {e}")
+            return []
+
+    def infer_pathways_from_indications(
+        self,
+        inchikey: str,
+        smiles: Optional[str] = None
+    ) -> List[PathwayMatch]:
+        """
+        Infer biological pathways from drug indications.
+
+        Uses ChEMBL indication data to infer which biological pathways
+        a drug likely affects based on its therapeutic uses.
+
+        Args:
+            inchikey: Standard InChIKey
+            smiles: Optional SMILES for fallback search
+
+        Returns:
+            List of PathwayMatch objects inferred from indications
+        """
+        try:
+            # Find ChEMBL molecule ID
+            chembl_id = self.find_compound_by_inchikey(inchikey)
+            if not chembl_id and smiles:
+                chembl_id = self.find_compound_by_smiles(smiles)
+
+            if not chembl_id:
+                logger.warning("Cannot infer pathways: compound not found in ChEMBL")
+                return []
+
+            # Get indications
+            indications = self.get_drug_indications(chembl_id)
+            if not indications:
+                logger.info(f"No indications found for {chembl_id}")
+                return []
+
+            # Map indications to pathways
+            pathway_map: Dict[str, PathwayMatch] = {}
+            matched_indications = []
+
+            for indication in indications:
+                efo_term = (indication.get("efo_term") or "").lower()
+                mesh_heading = (indication.get("mesh_heading") or "").lower()
+                max_phase = indication.get("max_phase")
+
+                # Search for matching keywords in our mapping
+                for keyword, pathway_info in INDICATION_PATHWAY_MAP.items():
+                    if keyword in efo_term or keyword in mesh_heading:
+                        matched_indications.append({
+                            "term": indication.get("efo_term") or indication.get("mesh_heading"),
+                            "keyword": keyword,
+                            "system": pathway_info["system"]
+                        })
+
+                        # Add pathways from this indication
+                        for i, pathway_id in enumerate(pathway_info["pathways"]):
+                            if pathway_id not in pathway_map:
+                                # High priority scores for indication-inferred pathways
+                                # These represent clinically validated drug-pathway relationships
+                                phase_val = float(max_phase) if max_phase else 0
+                                if phase_val >= 4:
+                                    confidence = 0.95  # Approved drug - highest priority
+                                elif phase_val >= 3:
+                                    confidence = 0.90  # Phase 3 - strong clinical evidence
+                                elif phase_val >= 2:
+                                    confidence = 0.85  # Phase 2 - good clinical evidence
+                                else:
+                                    confidence = 0.80  # Early phase or unknown
+
+                                indication_term = indication.get('efo_term') or indication.get('mesh_heading')
+                                pathway_map[pathway_id] = PathwayMatch(
+                                    pathway_id=pathway_id,
+                                    pathway_name=pathway_info["pathway_names"][i],
+                                    pathway_species="Homo sapiens",
+                                    matched_targets=[f"Inferred from: {indication_term}"],
+                                    measured_targets_count=0,
+                                    predicted_targets_count=0,
+                                    impact_score=confidence,  # Use confidence as impact score
+                                    confidence_tier=ConfidenceTier.TIER_B,
+                                    confidence_score=confidence,
+                                    explanation=f"Pathway inferred from drug indication '{indication_term}' ({pathway_info['system']})",
+                                    pathway_url=f"https://reactome.org/content/detail/{pathway_id}"
+                                )
+                            else:
+                                # Add indication to matched targets
+                                ind_note = f"Inferred from: {indication.get('efo_term') or indication.get('mesh_heading')}"
+                                if ind_note not in pathway_map[pathway_id].matched_targets:
+                                    pathway_map[pathway_id].matched_targets.append(ind_note)
+
+            pathways = list(pathway_map.values())
+
+            if matched_indications:
+                logger.info(f"Inferred {len(pathways)} pathways from {len(matched_indications)} indication matches for {chembl_id}")
+                for match in matched_indications[:3]:  # Log first 3
+                    logger.info(f"  - {match['term']} -> {match['system']}")
+
+            return pathways
+
+        except Exception as e:
+            logger.error(f"Error inferring pathways from indications: {e}")
+            return []

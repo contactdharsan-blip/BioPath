@@ -1,13 +1,14 @@
 """FastAPI application for BioPath"""
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import uuid
 import logging
-from typing import Optional
+import base64
+from typing import Optional, List
 from pathlib import Path
 
 from app.config import settings
@@ -17,8 +18,15 @@ from app.models.schemas import (
     AnalysisJob
 )
 from app.services.analysis import AnalysisService
+from app.services.plant_identification import plant_identification_service
 from app.tasks.celery_tasks import analyze_ingredient_task, celery_app
 from app.clients.reactome import ReactomeClient
+from app.data.plant_compounds import (
+    get_plant_compounds,
+    search_plant_fuzzy,
+    get_plants_by_compound,
+    PLANT_COMPOUNDS_DB
+)
 
 # Configure logging
 logging.basicConfig(
@@ -77,11 +85,18 @@ async def api_info():
             "analyze_sync": "POST /analyze_sync - Synchronous analysis",
             "analyze_async": "POST /analyze - Asynchronous analysis (returns job_id)",
             "get_results": "GET /results/{job_id} - Get async analysis results",
+            "identify_plant": "POST /identify_plant - Identify plant from base64 image",
+            "identify_plant_upload": "POST /identify_plant/upload - Identify plant from file upload",
+            "analyze_plant": "POST /analyze_plant - Full plant analysis (image → species → compounds → pathways)",
+            "analyze_plant_upload": "POST /analyze_plant/upload - Full plant analysis from file upload",
+            "list_plants": "GET /api/plants - List all plants in database",
+            "search_plants": "GET /api/plants/search?q=query - Search plants",
             "health": "GET /health - Health check",
             "docs": "GET /docs - Interactive API documentation"
         },
         "example_usage": {
-            "curl": 'curl -X POST "http://localhost:8000/analyze_sync" -H "Content-Type: application/json" -d \'{"ingredient_name": "ibuprofen", "enable_predictions": false}\''
+            "curl_analyze": 'curl -X POST "http://localhost:8000/analyze_sync" -H "Content-Type: application/json" -d \'{"ingredient_name": "ibuprofen", "enable_predictions": false}\'',
+            "curl_plant_upload": 'curl -X POST "http://localhost:8000/identify_plant/upload" -F "file=@plant_photo.jpg" -F "organs=leaf"'
         }
     }
 
@@ -236,6 +251,389 @@ async def delete_job(job_id: str):
 async def list_jobs():
     """List all jobs"""
     return {"jobs": list(jobs_store.values())}
+
+
+# ============================================
+# Plant Identification API Endpoints
+# ============================================
+
+class PlantIdentifyRequest(BaseModel):
+    """Request for plant identification from base64 image"""
+    image_base64: str
+    organs: Optional[List[str]] = None  # leaf, flower, fruit, bark
+
+
+class PlantAnalyzeRequest(BaseModel):
+    """Request for full plant analysis from base64 image"""
+    image_base64: str
+    organs: Optional[List[str]] = None
+    max_compounds: int = 5
+    enable_predictions: bool = False
+
+
+@app.post("/identify_plant")
+async def identify_plant(request: PlantIdentifyRequest):
+    """
+    Identify a plant species from an image.
+
+    Uses PlantNet API to identify the plant species, then looks up
+    the plant in our compounds database.
+
+    Args:
+        request: PlantIdentifyRequest with base64 image data
+
+    Returns:
+        Plant identification results with species name and known compounds
+    """
+    try:
+        logger.info("Plant identification request received")
+
+        result = plant_identification_service.identify_from_base64(
+            request.image_base64,
+            request.organs
+        )
+
+        if not result.success:
+            return {
+                "success": False,
+                "error": result.error
+            }
+
+        response = {
+            "success": True,
+            "scientific_name": result.scientific_name,
+            "common_names": result.common_names,
+            "family": result.family,
+            "confidence": result.confidence,
+            "in_database": result.plant_info is not None
+        }
+
+        if result.plant_info:
+            response["compounds"] = result.plant_info.compounds
+            response["traditional_uses"] = result.plant_info.traditional_uses
+            response["parts_used"] = result.plant_info.parts_used
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Plant identification error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Plant identification failed: {str(e)}"
+        )
+
+
+@app.post("/identify_plant/upload")
+async def identify_plant_upload(
+    file: UploadFile = File(...),
+    organs: Optional[str] = Form(None)
+):
+    """
+    Identify a plant species from an uploaded image file.
+
+    Args:
+        file: Image file (JPEG, PNG)
+        organs: Comma-separated list of organs visible (leaf,flower,fruit,bark)
+
+    Returns:
+        Plant identification results
+    """
+    try:
+        # Validate file type
+        content_type = file.content_type
+        if content_type not in ["image/jpeg", "image/png", "image/jpg"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file type. Only JPEG and PNG images are supported."
+            )
+
+        # Read file content
+        image_data = await file.read()
+
+        # Parse organs if provided
+        organs_list = None
+        if organs:
+            organs_list = [o.strip() for o in organs.split(",")]
+
+        logger.info(f"Plant identification upload: {file.filename}")
+
+        result = plant_identification_service.identify_plant_from_image(
+            image_data,
+            organs_list
+        )
+
+        if not result.success:
+            return {
+                "success": False,
+                "error": result.error
+            }
+
+        response = {
+            "success": True,
+            "scientific_name": result.scientific_name,
+            "common_names": result.common_names,
+            "family": result.family,
+            "confidence": result.confidence,
+            "in_database": result.plant_info is not None
+        }
+
+        if result.plant_info:
+            response["compounds"] = result.plant_info.compounds
+            response["traditional_uses"] = result.plant_info.traditional_uses
+            response["parts_used"] = result.plant_info.parts_used
+
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Plant identification upload error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Plant identification failed: {str(e)}"
+        )
+
+
+@app.post("/analyze_plant")
+async def analyze_plant(request: PlantAnalyzeRequest):
+    """
+    Complete pipeline: identify plant from image and analyze its compounds.
+
+    This endpoint:
+    1. Sends image to PlantNet API for species identification
+    2. Looks up species in plant compounds database
+    3. Analyzes each compound through ChEMBL for pathway information
+    4. Returns aggregated results
+
+    Args:
+        request: PlantAnalyzeRequest with base64 image and options
+
+    Returns:
+        Complete plant analysis with compound pathways
+    """
+    try:
+        logger.info("Full plant analysis request received")
+
+        result = plant_identification_service.analyze_plant_from_base64(
+            request.image_base64,
+            request.organs,
+            request.max_compounds,
+            request.enable_predictions
+        )
+
+        # Format response
+        response = {
+            "identification": {
+                "success": result.identification.success,
+                "scientific_name": result.identification.scientific_name,
+                "common_names": result.identification.common_names,
+                "family": result.identification.family,
+                "confidence": result.identification.confidence,
+                "error": result.identification.error
+            },
+            "compounds_found": result.compounds_found,
+            "compound_analyses": [
+                {
+                    "compound_name": report.ingredient_name,
+                    "targets_found": len(report.known_targets),
+                    "pathways_found": len(report.pathways),
+                    "top_pathways": [
+                        {
+                            "name": p.pathway_name,
+                            "impact_score": p.impact_score,
+                            "url": p.pathway_url
+                        }
+                        for p in report.pathways[:5]
+                    ]
+                }
+                for report in result.compound_reports
+            ],
+            "aggregate_pathways": result.aggregate_pathways,
+            "summary": result.summary
+        }
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Plant analysis error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Plant analysis failed: {str(e)}"
+        )
+
+
+@app.post("/analyze_plant/upload")
+async def analyze_plant_upload(
+    file: UploadFile = File(...),
+    organs: Optional[str] = Form(None),
+    max_compounds: int = Form(5),
+    enable_predictions: bool = Form(False)
+):
+    """
+    Complete plant analysis from uploaded image file.
+
+    Args:
+        file: Image file (JPEG, PNG)
+        organs: Comma-separated list of organs visible
+        max_compounds: Maximum compounds to analyze (default 5)
+        enable_predictions: Enable ML predictions (default False)
+
+    Returns:
+        Complete plant analysis with compound pathways
+    """
+    try:
+        # Validate file type
+        content_type = file.content_type
+        if content_type not in ["image/jpeg", "image/png", "image/jpg"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file type. Only JPEG and PNG images are supported."
+            )
+
+        # Read file content
+        image_data = await file.read()
+
+        # Parse organs if provided
+        organs_list = None
+        if organs:
+            organs_list = [o.strip() for o in organs.split(",")]
+
+        logger.info(f"Full plant analysis upload: {file.filename}")
+
+        result = plant_identification_service.analyze_plant_from_image(
+            image_data,
+            organs_list,
+            max_compounds,
+            enable_predictions
+        )
+
+        # Format response (same as analyze_plant)
+        response = {
+            "identification": {
+                "success": result.identification.success,
+                "scientific_name": result.identification.scientific_name,
+                "common_names": result.identification.common_names,
+                "family": result.identification.family,
+                "confidence": result.identification.confidence,
+                "error": result.identification.error
+            },
+            "compounds_found": result.compounds_found,
+            "compound_analyses": [
+                {
+                    "compound_name": report.ingredient_name,
+                    "targets_found": len(report.known_targets),
+                    "pathways_found": len(report.pathways),
+                    "top_pathways": [
+                        {
+                            "name": p.pathway_name,
+                            "impact_score": p.impact_score,
+                            "url": p.pathway_url
+                        }
+                        for p in report.pathways[:5]
+                    ]
+                }
+                for report in result.compound_reports
+            ],
+            "aggregate_pathways": result.aggregate_pathways,
+            "summary": result.summary
+        }
+
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Plant analysis upload error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Plant analysis failed: {str(e)}"
+        )
+
+
+@app.get("/api/plants")
+async def list_plants():
+    """
+    List all plants in the compounds database.
+
+    Returns:
+        List of plants with their scientific and common names
+    """
+    plants = []
+    for scientific_name, info in PLANT_COMPOUNDS_DB.items():
+        plants.append({
+            "scientific_name": info.scientific_name,
+            "common_names": info.common_names,
+            "family": info.family,
+            "compound_count": len(info.compounds)
+        })
+
+    return {
+        "total": len(plants),
+        "plants": sorted(plants, key=lambda x: x["scientific_name"])
+    }
+
+
+@app.get("/api/plants/search")
+async def search_plants(q: str):
+    """
+    Search plants by name (scientific, common, or family).
+
+    Args:
+        q: Search query
+
+    Returns:
+        Matching plants
+    """
+    results = search_plant_fuzzy(q)
+
+    return {
+        "query": q,
+        "count": len(results),
+        "results": [
+            {
+                "scientific_name": p.scientific_name,
+                "common_names": p.common_names,
+                "family": p.family,
+                "compounds": p.compounds,
+                "traditional_uses": p.traditional_uses
+            }
+            for p in results
+        ]
+    }
+
+
+@app.get("/api/plants/{scientific_name}")
+async def get_plant_info(scientific_name: str):
+    """
+    Get detailed information about a plant.
+
+    Args:
+        scientific_name: Scientific name of the plant
+
+    Returns:
+        Plant details including compounds and traditional uses
+    """
+    plant = get_plant_compounds(scientific_name)
+
+    if not plant:
+        # Try fuzzy search
+        results = search_plant_fuzzy(scientific_name)
+        if results:
+            plant = results[0]
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Plant '{scientific_name}' not found in database"
+            )
+
+    return {
+        "scientific_name": plant.scientific_name,
+        "common_names": plant.common_names,
+        "family": plant.family,
+        "compounds": plant.compounds,
+        "traditional_uses": plant.traditional_uses,
+        "parts_used": plant.parts_used
+    }
 
 
 # ============================================

@@ -89,22 +89,13 @@ class AnalysisService:
 
         # Step 4: Map targets to pathways
         all_targets = known_targets + predicted_targets
-        if not all_targets:
-            logger.warning(f"No targets (measured or predicted) for {ingredient_name}")
-            return BodyImpactReport(
-                ingredient_name=ingredient_name,
-                compound_identity=compound,
-                known_targets=[],
-                predicted_targets=[],
-                pathways=[],
-                final_summary={"message": "No target evidence found"},
-                provenance=provenance,
-                predictions_enabled=ingredient_input.enable_predictions,
-                total_analysis_duration_seconds=time.time() - start_time
-            )
+        pathways = []
 
-        pathways, prov = self._map_pathways(known_targets, predicted_targets)
-        provenance.append(prov)
+        if all_targets:
+            pathways, prov = self._map_pathways(known_targets, predicted_targets)
+            provenance.append(prov)
+        else:
+            logger.warning(f"No targets (measured or predicted) for {ingredient_name}, trying indication inference")
 
         # Step 4b: Fallback to DrugBank/Open Targets if Reactome has no pathways
         if not pathways and settings.enable_drugbank_fallback:
@@ -119,6 +110,26 @@ class AnalysisService:
                 )
                 provenance.append(fallback_prov)
                 logger.info(f"Found {len(pathways)} pathways via Open Targets fallback")
+
+        # Step 4c: Infer pathways from ChEMBL drug indications (enhances results)
+        if compound and compound.inchikey:
+            indication_pathways = self.chembl.infer_pathways_from_indications(
+                compound.inchikey,
+                compound.canonical_smiles
+            )
+            if indication_pathways:
+                # Merge indication-inferred pathways with existing ones
+                existing_ids = {p.pathway_id for p in pathways}
+                new_pathways = [p for p in indication_pathways if p.pathway_id not in existing_ids]
+                if new_pathways:
+                    pathways.extend(new_pathways)
+                    indication_prov = ProvenanceRecord(
+                        service="ChEMBL Indications",
+                        endpoint="/drug_indication (inference)",
+                        status="success"
+                    )
+                    provenance.append(indication_prov)
+                    logger.info(f"Added {len(new_pathways)} pathways inferred from drug indications")
 
         # Step 5: Generate summary
         final_summary = self._generate_summary(pathways, known_targets, predicted_targets)
@@ -270,13 +281,16 @@ class AnalysisService:
                 pathway_dict[pathway_id]["target_ids"].add(target_id)
 
         # Calculate impact scores for each pathway
+        # Limit to top 20 pathways for performance
         pathway_matches = []
+        pathway_items = list(pathway_dict.items())[:20]
+        pathway_ids = [pid for pid, _ in pathway_items]
 
-        for pathway_id, info in pathway_dict.items():
-            # Get pathway participants (for coverage calculation)
-            # In production, this should also be cached
-            participants = self.reactome.get_pathway_participants(pathway_id)
+        # Fetch all pathway participants in batch (concurrent + cached)
+        participants_map = self.reactome.get_pathway_participants_batch(pathway_ids)
 
+        for pathway_id, info in pathway_items:
+            participants = participants_map.get(pathway_id, [])
             pathway_url = f"https://reactome.org/content/detail/{pathway_id}"
 
             # Calculate impact score

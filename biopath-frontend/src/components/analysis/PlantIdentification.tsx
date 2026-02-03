@@ -23,7 +23,6 @@ export const PlantIdentification: React.FC<PlantIdentificationProps> = ({
   const [selectedOrgans, setSelectedOrgans] = useState<OrganType[]>(['leaf']);
   const [maxCompounds, setMaxCompounds] = useState(5);
   const [enablePredictions, setEnablePredictions] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = useCallback((file: File) => {
@@ -48,27 +47,6 @@ export const PlantIdentification: React.FC<PlantIdentificationProps> = ({
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-  };
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    const file = e.dataTransfer.files?.[0];
     if (file) {
       handleFileSelect(file);
     }
@@ -147,53 +125,58 @@ export const PlantIdentification: React.FC<PlantIdentificationProps> = ({
           </p>
         </div>
 
-        {/* Image Upload Area */}
-        <div
-          className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-            dragActive
-              ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-              : previewUrl
-              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-              : 'border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500'
-          }`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/jpg"
-            onChange={handleFileInputChange}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          />
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/jpg"
+          onChange={handleFileInputChange}
+          className="hidden"
+        />
 
-          {previewUrl ? (
-            <div className="space-y-4">
-              <img
-                src={previewUrl}
-                alt="Selected plant"
-                className="max-h-64 mx-auto rounded-lg shadow-md"
-              />
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {selectedFile?.name}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="text-5xl">📷</div>
-              <div>
-                <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
-                  Drop your plant photo here
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  or click to browse (JPEG, PNG, max 10MB)
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Image Preview or Upload Button */}
+        {previewUrl ? (
+          <div className="border-2 border-green-500 bg-green-50 dark:bg-green-900/20 rounded-xl p-6 text-center">
+            <img
+              src={previewUrl}
+              alt="Selected plant"
+              className="max-h-64 mx-auto rounded-lg shadow-md mb-4"
+            />
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              {selectedFile?.name}
+            </p>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium"
+            >
+              Change Photo
+            </button>
+          </div>
+        ) : (
+          <div className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center bg-gray-50 dark:bg-gray-800/50">
+            <div className="text-6xl mb-4">🌿</div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              Upload a Plant Photo
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              Take or upload a clear photo of a plant to identify it
+            </p>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition-colors shadow-md"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Choose Photo
+            </button>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              Supports JPEG and PNG (max 10MB)
+            </p>
+          </div>
+        )}
 
         {/* Plant Organs Selection */}
         <div>

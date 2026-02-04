@@ -36,7 +36,7 @@ class PlantNetClient:
 
         Args:
             image_data: Raw image bytes (JPEG, PNG)
-            organs: Plant organs visible in image (leaf, flower, fruit, bark)
+            organs: Plant organs visible in image (leaf, flower, fruit, bark, root)
             lang: Language for common names
 
         Returns:
@@ -49,30 +49,24 @@ class PlantNetClient:
         if organs is None:
             organs = ["auto"]  # Let PlantNet auto-detect
 
+        # PlantNet requires organs[] length to match images[] length
+        # Since we send 1 image, use only the first organ
+        primary_organ = organs[0] if organs else "auto"
+
         try:
             # PlantNet API endpoint
             url = f"{self.base_url}/all"
-
-            params = {
-                "api-key": self.api_key,
-                "lang": lang,
-                "include-related-images": "false"
-            }
-
-            # Add organs parameter
-            for organ in organs:
-                params.setdefault("organs", []).append(organ) if isinstance(params.get("organs"), list) else None
 
             files = {
                 "images": ("plant.jpg", image_data, "image/jpeg")
             }
 
-            # Also send organs as form data
+            # Send single organ matching the single image
             data = {
-                "organs": organs
+                "organs": primary_organ
             }
 
-            logger.info(f"Identifying plant with PlantNet (organs: {organs})")
+            logger.info(f"Identifying plant with PlantNet (organ: {primary_organ})")
 
             with httpx.Client(timeout=self.timeout) as client:
                 response = client.post(
@@ -101,7 +95,7 @@ class PlantNetClient:
 
             logger.info(
                 f"PlantNet identified: {best_match['scientific_name'] if best_match else 'Unknown'} "
-                f"(score: {best_match['score']:.2f if best_match else 0})"
+                f"(score: {(best_match['score'] if best_match else 0):.2f})"
             )
 
             return {

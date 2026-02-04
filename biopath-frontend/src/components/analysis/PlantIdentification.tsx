@@ -10,7 +10,7 @@ interface PlantIdentificationProps {
   setIsLoading: (loading: boolean) => void;
 }
 
-type OrganType = 'leaf' | 'flower' | 'fruit' | 'bark';
+type OrganType = 'leaf' | 'flower' | 'fruit' | 'bark' | 'root';
 
 export const PlantIdentification: React.FC<PlantIdentificationProps> = ({
   onAnalysisComplete,
@@ -111,6 +111,7 @@ export const PlantIdentification: React.FC<PlantIdentificationProps> = ({
     { id: 'flower', label: 'Flower', icon: '🌸' },
     { id: 'fruit', label: 'Fruit', icon: '🍎' },
     { id: 'bark', label: 'Bark', icon: '🪵' },
+    { id: 'root', label: 'Root', icon: '🥕' },
   ];
 
   return (

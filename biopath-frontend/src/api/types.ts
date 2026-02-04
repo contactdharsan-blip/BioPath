@@ -149,7 +149,12 @@ export interface PubChemAutocompleteResponse {
 export interface PlantCompound {
   name: string;
   chembl_id?: string;
-  cas_number?: string;
+  // Confidence-based scoring fields
+  research_level?: number;        // 0-1: How well-studied (1 = extensive clinical trials)
+  drug_interaction_risk?: number; // 0-1: Interaction potential (1 = high risk like St. John's Wort)
+  bioactivity_strength?: number;  // 0-1: Biological effect potency
+  lifestyle_categories?: string[]; // e.g., ["sleep", "mood", "energy", "pain"]
+  priority_score?: number;        // Calculated priority for analysis order
 }
 
 export interface PlantIdentificationRequest {
@@ -199,6 +204,12 @@ export interface AggregatePathway {
   confidence_tier: string;
 }
 
+export interface HighInteractionCompound {
+  name: string;
+  risk_level: number;
+  categories: string[];
+}
+
 export interface PlantAnalysisSummary {
   plant_identified: string;
   common_names: string[];
@@ -206,14 +217,19 @@ export interface PlantAnalysisSummary {
   identification_confidence: number;
   compounds_analyzed: number;
   compound_names: string[];
+  compound_details?: PlantCompound[];  // Full details with priority scores
+  average_research_confidence?: number; // Average research level across compounds
   total_targets_found: number;
   total_pathways_affected: number;
+  lifestyle_categories_affected?: string[]; // All lifestyle areas this plant affects
   traditional_uses: string[];
   top_pathways: {
     name: string;
     score: number;
     compounds_involved: string[];
   }[];
+  high_interaction_compounds?: HighInteractionCompound[]; // Compounds with drug interaction risks
+  drug_interaction_warning?: string; // Warning message if high-risk compounds present
   disclaimer: string;
   warning?: string;
   error?: string;

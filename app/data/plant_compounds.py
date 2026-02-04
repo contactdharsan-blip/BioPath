@@ -8,10 +8,75 @@ Data sources:
 - Dr. Duke's Phytochemical Database
 - PubChem plant compound annotations
 - Traditional medicine literature
+- Drug interaction databases (DrugBank, Natural Medicines)
 """
 
 from typing import Dict, List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+
+@dataclass
+class CompoundMetadata:
+    """
+    Metadata for prioritizing compound analysis.
+
+    Scores are 0.0-1.0 where higher = more relevant for analysis.
+    """
+    name: str
+    chembl_id: Optional[str] = None
+
+    # Research confidence: How well-studied is this compound?
+    # 1.0 = Extensive clinical trials, FDA-reviewed
+    # 0.7 = Multiple peer-reviewed studies
+    # 0.4 = Limited research, mostly in-vitro
+    # 0.1 = Minimal research, traditional use only
+    research_level: float = 0.3
+
+    # Drug interaction potential: How likely to interact with medications?
+    # 1.0 = Known major interactions (e.g., St. John's Wort + SSRIs)
+    # 0.7 = Moderate interaction potential (CYP450 effects)
+    # 0.4 = Minor interactions possible
+    # 0.1 = Low interaction risk
+    drug_interaction_risk: float = 0.2
+
+    # Bioactivity strength: How potent is the biological effect?
+    # 1.0 = Highly potent, pharmaceutical-level activity
+    # 0.7 = Significant measurable effects
+    # 0.4 = Moderate activity
+    # 0.1 = Mild or unclear effects
+    bioactivity_strength: float = 0.3
+
+    # Lifestyle impact categories this compound affects
+    lifestyle_categories: List[str] = field(default_factory=list)
+    # Categories: sleep, energy, mood, digestion, immunity, cognition,
+    #            pain, inflammation, cardiovascular, skin, metabolism
+
+
+def calculate_compound_priority(compound: CompoundMetadata) -> float:
+    """
+    Calculate a priority score for compound analysis based on multiple factors.
+
+    Returns a score from 0.0 to 1.0 where higher = should analyze first.
+
+    Weighting:
+    - 35% research_level (prioritize well-studied compounds)
+    - 25% bioactivity_strength (compounds with known strong effects)
+    - 25% drug_interaction_risk (important for safety awareness)
+    - 10% has ChEMBL ID (can be analyzed through pathway database)
+    - 5% lifestyle relevance (affects multiple body systems)
+    """
+    chembl_bonus = 0.10 if compound.chembl_id else 0.0
+    lifestyle_bonus = min(len(compound.lifestyle_categories) / 5, 1.0) * 0.05
+
+    priority = (
+        compound.research_level * 0.35 +
+        compound.bioactivity_strength * 0.25 +
+        compound.drug_interaction_risk * 0.25 +
+        chembl_bonus +
+        lifestyle_bonus
+    )
+
+    return round(min(priority, 1.0), 3)
 
 
 @dataclass
@@ -20,41 +85,171 @@ class PlantCompoundInfo:
     scientific_name: str
     common_names: List[str]
     family: str
-    compounds: List[Dict[str, str]]  # List of {name, cas_number (optional), chembl_id (optional)}
+    compounds: List[CompoundMetadata]
     traditional_uses: List[str]
     parts_used: List[str]
 
 
-# Comprehensive plant-to-compounds mapping
+def get_prioritized_compounds(
+    plant_info: PlantCompoundInfo,
+    max_compounds: int = 5
+) -> List[CompoundMetadata]:
+    """
+    Get compounds sorted by priority score (most important first).
+
+    Args:
+        plant_info: Plant compound information
+        max_compounds: Maximum number of compounds to return
+
+    Returns:
+        List of CompoundMetadata sorted by priority (highest first)
+    """
+    scored_compounds = [
+        (compound, calculate_compound_priority(compound))
+        for compound in plant_info.compounds
+    ]
+
+    # Sort by priority score descending
+    scored_compounds.sort(key=lambda x: x[1], reverse=True)
+
+    return [compound for compound, score in scored_compounds[:max_compounds]]
+
+
+# Comprehensive plant-to-compounds mapping with confidence scoring
 # Keys are lowercase scientific names for easy matching
+# Compounds include research_level, drug_interaction_risk, and bioactivity_strength
 PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
-    # Common medicinal herbs
+    # === HIGH RESEARCH / HIGH INTERACTION PLANTS ===
+
+    "hypericum perforatum": PlantCompoundInfo(
+        scientific_name="Hypericum perforatum",
+        common_names=["St. John's Wort"],
+        family="Hypericaceae",
+        compounds=[
+            CompoundMetadata(
+                name="hyperforin", chembl_id="CHEMBL138647",
+                research_level=0.9, drug_interaction_risk=0.95, bioactivity_strength=0.9,
+                lifestyle_categories=["mood", "cognition"]
+            ),
+            CompoundMetadata(
+                name="hypericin", chembl_id="CHEMBL297399",
+                research_level=0.85, drug_interaction_risk=0.9, bioactivity_strength=0.8,
+                lifestyle_categories=["mood", "skin"]
+            ),
+            CompoundMetadata(
+                name="pseudohypericin",
+                research_level=0.5, drug_interaction_risk=0.7, bioactivity_strength=0.5,
+                lifestyle_categories=["mood"]
+            ),
+            CompoundMetadata(
+                name="quercetin", chembl_id="CHEMBL159",
+                research_level=0.8, drug_interaction_risk=0.4, bioactivity_strength=0.6,
+                lifestyle_categories=["inflammation", "immunity"]
+            ),
+        ],
+        traditional_uses=["Mood support", "Nerve pain", "Wound healing"],
+        parts_used=["Aerial parts", "Flowers"]
+    ),
+
+    "cannabis sativa": PlantCompoundInfo(
+        scientific_name="Cannabis sativa",
+        common_names=["Hemp", "Cannabis", "Marijuana"],
+        family="Cannabaceae",
+        compounds=[
+            CompoundMetadata(
+                name="delta-9-tetrahydrocannabinol", chembl_id="CHEMBL361",
+                research_level=0.95, drug_interaction_risk=0.85, bioactivity_strength=0.95,
+                lifestyle_categories=["pain", "mood", "sleep", "digestion"]
+            ),
+            CompoundMetadata(
+                name="cannabidiol", chembl_id="CHEMBL190401",
+                research_level=0.9, drug_interaction_risk=0.7, bioactivity_strength=0.85,
+                lifestyle_categories=["pain", "mood", "sleep", "inflammation"]
+            ),
+            CompoundMetadata(
+                name="cannabinol", chembl_id="CHEMBL189468",
+                research_level=0.6, drug_interaction_risk=0.5, bioactivity_strength=0.5,
+                lifestyle_categories=["sleep"]
+            ),
+            CompoundMetadata(
+                name="cannabigerol", chembl_id="CHEMBL445988",
+                research_level=0.5, drug_interaction_risk=0.4, bioactivity_strength=0.5,
+                lifestyle_categories=["inflammation", "mood"]
+            ),
+        ],
+        traditional_uses=["Pain relief", "Relaxation", "Appetite stimulation"],
+        parts_used=["Flowers", "Leaves"]
+    ),
+
+    "ginkgo biloba": PlantCompoundInfo(
+        scientific_name="Ginkgo biloba",
+        common_names=["Ginkgo", "Maidenhair Tree"],
+        family="Ginkgoaceae",
+        compounds=[
+            CompoundMetadata(
+                name="ginkgolide B", chembl_id="CHEMBL372476",
+                research_level=0.85, drug_interaction_risk=0.8, bioactivity_strength=0.8,
+                lifestyle_categories=["cognition", "cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="ginkgolide A", chembl_id="CHEMBL506640",
+                research_level=0.8, drug_interaction_risk=0.75, bioactivity_strength=0.75,
+                lifestyle_categories=["cognition", "cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="bilobalide", chembl_id="CHEMBL510750",
+                research_level=0.7, drug_interaction_risk=0.6, bioactivity_strength=0.7,
+                lifestyle_categories=["cognition"]
+            ),
+            CompoundMetadata(
+                name="quercetin", chembl_id="CHEMBL159",
+                research_level=0.8, drug_interaction_risk=0.4, bioactivity_strength=0.6,
+                lifestyle_categories=["inflammation", "immunity"]
+            ),
+            CompoundMetadata(
+                name="kaempferol", chembl_id="CHEMBL284159",
+                research_level=0.7, drug_interaction_risk=0.3, bioactivity_strength=0.5,
+                lifestyle_categories=["inflammation"]
+            ),
+        ],
+        traditional_uses=["Memory enhancement", "Circulation", "Cognitive support"],
+        parts_used=["Leaves"]
+    ),
+
+    # === HIGH RESEARCH PLANTS ===
+
     "curcuma longa": PlantCompoundInfo(
         scientific_name="Curcuma longa",
         common_names=["Turmeric", "Indian Saffron"],
         family="Zingiberaceae",
         compounds=[
-            {"name": "curcumin", "chembl_id": "CHEMBL116438"},
-            {"name": "demethoxycurcumin", "chembl_id": "CHEMBL299159"},
-            {"name": "bisdemethoxycurcumin", "chembl_id": "CHEMBL65899"},
-            {"name": "turmerone", "chembl_id": "CHEMBL442406"},
-            {"name": "ar-turmerone"},
+            CompoundMetadata(
+                name="curcumin", chembl_id="CHEMBL116438",
+                research_level=0.95, drug_interaction_risk=0.5, bioactivity_strength=0.85,
+                lifestyle_categories=["inflammation", "pain", "cognition", "digestion"]
+            ),
+            CompoundMetadata(
+                name="demethoxycurcumin", chembl_id="CHEMBL299159",
+                research_level=0.6, drug_interaction_risk=0.3, bioactivity_strength=0.6,
+                lifestyle_categories=["inflammation"]
+            ),
+            CompoundMetadata(
+                name="bisdemethoxycurcumin", chembl_id="CHEMBL65899",
+                research_level=0.5, drug_interaction_risk=0.3, bioactivity_strength=0.55,
+                lifestyle_categories=["inflammation"]
+            ),
+            CompoundMetadata(
+                name="turmerone", chembl_id="CHEMBL442406",
+                research_level=0.4, drug_interaction_risk=0.2, bioactivity_strength=0.4,
+                lifestyle_categories=["cognition"]
+            ),
+            CompoundMetadata(
+                name="ar-turmerone",
+                research_level=0.3, drug_interaction_risk=0.2, bioactivity_strength=0.35,
+                lifestyle_categories=["cognition"]
+            ),
         ],
         traditional_uses=["Anti-inflammatory", "Digestive aid", "Wound healing"],
-        parts_used=["Rhizome"]
-    ),
-
-    "zingiber officinale": PlantCompoundInfo(
-        scientific_name="Zingiber officinale",
-        common_names=["Ginger"],
-        family="Zingiberaceae",
-        compounds=[
-            {"name": "gingerol", "chembl_id": "CHEMBL289540"},
-            {"name": "shogaol", "chembl_id": "CHEMBL106849"},
-            {"name": "zingerone", "chembl_id": "CHEMBL288129"},
-            {"name": "zingiberene"},
-        ],
-        traditional_uses=["Nausea relief", "Anti-inflammatory", "Digestive aid"],
         parts_used=["Rhizome"]
     ),
 
@@ -63,14 +258,64 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Tea", "Green Tea", "Black Tea"],
         family="Theaceae",
         compounds=[
-            {"name": "epigallocatechin gallate", "chembl_id": "CHEMBL297453"},
-            {"name": "caffeine", "chembl_id": "CHEMBL113"},
-            {"name": "theanine", "chembl_id": "CHEMBL443294"},
-            {"name": "catechin", "chembl_id": "CHEMBL159"},
-            {"name": "theaflavin"},
+            CompoundMetadata(
+                name="caffeine", chembl_id="CHEMBL113",
+                research_level=0.98, drug_interaction_risk=0.6, bioactivity_strength=0.9,
+                lifestyle_categories=["energy", "cognition", "metabolism"]
+            ),
+            CompoundMetadata(
+                name="epigallocatechin gallate", chembl_id="CHEMBL297453",
+                research_level=0.9, drug_interaction_risk=0.5, bioactivity_strength=0.8,
+                lifestyle_categories=["metabolism", "cardiovascular", "immunity"]
+            ),
+            CompoundMetadata(
+                name="theanine", chembl_id="CHEMBL443294",
+                research_level=0.8, drug_interaction_risk=0.3, bioactivity_strength=0.7,
+                lifestyle_categories=["mood", "cognition", "sleep"]
+            ),
+            CompoundMetadata(
+                name="catechin", chembl_id="CHEMBL159",
+                research_level=0.75, drug_interaction_risk=0.3, bioactivity_strength=0.6,
+                lifestyle_categories=["cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="theaflavin",
+                research_level=0.5, drug_interaction_risk=0.2, bioactivity_strength=0.5,
+                lifestyle_categories=["cardiovascular"]
+            ),
         ],
         traditional_uses=["Stimulant", "Antioxidant", "Mental alertness"],
         parts_used=["Leaves"]
+    ),
+
+    "zingiber officinale": PlantCompoundInfo(
+        scientific_name="Zingiber officinale",
+        common_names=["Ginger"],
+        family="Zingiberaceae",
+        compounds=[
+            CompoundMetadata(
+                name="gingerol", chembl_id="CHEMBL289540",
+                research_level=0.85, drug_interaction_risk=0.5, bioactivity_strength=0.8,
+                lifestyle_categories=["digestion", "inflammation", "pain"]
+            ),
+            CompoundMetadata(
+                name="shogaol", chembl_id="CHEMBL106849",
+                research_level=0.7, drug_interaction_risk=0.4, bioactivity_strength=0.75,
+                lifestyle_categories=["digestion", "inflammation"]
+            ),
+            CompoundMetadata(
+                name="zingerone", chembl_id="CHEMBL288129",
+                research_level=0.6, drug_interaction_risk=0.3, bioactivity_strength=0.5,
+                lifestyle_categories=["digestion", "metabolism"]
+            ),
+            CompoundMetadata(
+                name="zingiberene",
+                research_level=0.4, drug_interaction_risk=0.2, bioactivity_strength=0.4,
+                lifestyle_categories=["digestion"]
+            ),
+        ],
+        traditional_uses=["Nausea relief", "Anti-inflammatory", "Digestive aid"],
+        parts_used=["Rhizome"]
     ),
 
     "panax ginseng": PlantCompoundInfo(
@@ -78,28 +323,121 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Korean Ginseng", "Asian Ginseng"],
         family="Araliaceae",
         compounds=[
-            {"name": "ginsenoside Rg1", "chembl_id": "CHEMBL457992"},
-            {"name": "ginsenoside Rb1", "chembl_id": "CHEMBL455616"},
-            {"name": "ginsenoside Rg3"},
-            {"name": "ginsenoside Re"},
+            CompoundMetadata(
+                name="ginsenoside Rg1", chembl_id="CHEMBL457992",
+                research_level=0.85, drug_interaction_risk=0.6, bioactivity_strength=0.8,
+                lifestyle_categories=["energy", "cognition", "immunity"]
+            ),
+            CompoundMetadata(
+                name="ginsenoside Rb1", chembl_id="CHEMBL455616",
+                research_level=0.8, drug_interaction_risk=0.55, bioactivity_strength=0.75,
+                lifestyle_categories=["energy", "cognition", "cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="ginsenoside Rg3",
+                research_level=0.6, drug_interaction_risk=0.5, bioactivity_strength=0.6,
+                lifestyle_categories=["immunity"]
+            ),
+            CompoundMetadata(
+                name="ginsenoside Re",
+                research_level=0.5, drug_interaction_risk=0.4, bioactivity_strength=0.5,
+                lifestyle_categories=["energy"]
+            ),
         ],
         traditional_uses=["Adaptogen", "Energy", "Cognitive function"],
         parts_used=["Root"]
     ),
 
-    "ginkgo biloba": PlantCompoundInfo(
-        scientific_name="Ginkgo biloba",
-        common_names=["Ginkgo", "Maidenhair Tree"],
-        family="Ginkgoaceae",
+    "glycyrrhiza glabra": PlantCompoundInfo(
+        scientific_name="Glycyrrhiza glabra",
+        common_names=["Licorice", "Liquorice"],
+        family="Fabaceae",
         compounds=[
-            {"name": "ginkgolide A", "chembl_id": "CHEMBL506640"},
-            {"name": "ginkgolide B", "chembl_id": "CHEMBL372476"},
-            {"name": "bilobalide", "chembl_id": "CHEMBL510750"},
-            {"name": "quercetin", "chembl_id": "CHEMBL159"},
-            {"name": "kaempferol", "chembl_id": "CHEMBL284159"},
+            CompoundMetadata(
+                name="glycyrrhizin", chembl_id="CHEMBL490469",
+                research_level=0.85, drug_interaction_risk=0.85, bioactivity_strength=0.8,
+                lifestyle_categories=["digestion", "inflammation", "immunity"]
+            ),
+            CompoundMetadata(
+                name="glabridin", chembl_id="CHEMBL260681",
+                research_level=0.6, drug_interaction_risk=0.5, bioactivity_strength=0.6,
+                lifestyle_categories=["skin", "metabolism"]
+            ),
+            CompoundMetadata(
+                name="liquiritigenin", chembl_id="CHEMBL285941",
+                research_level=0.5, drug_interaction_risk=0.4, bioactivity_strength=0.5,
+                lifestyle_categories=["mood"]
+            ),
+            CompoundMetadata(
+                name="isoliquiritigenin", chembl_id="CHEMBL11867",
+                research_level=0.5, drug_interaction_risk=0.4, bioactivity_strength=0.55,
+                lifestyle_categories=["inflammation"]
+            ),
         ],
-        traditional_uses=["Memory enhancement", "Circulation", "Cognitive support"],
-        parts_used=["Leaves"]
+        traditional_uses=["Digestive aid", "Respiratory support", "Anti-inflammatory"],
+        parts_used=["Root"]
+    ),
+
+    "berberis vulgaris": PlantCompoundInfo(
+        scientific_name="Berberis vulgaris",
+        common_names=["Barberry"],
+        family="Berberidaceae",
+        compounds=[
+            CompoundMetadata(
+                name="berberine", chembl_id="CHEMBL1076",
+                research_level=0.9, drug_interaction_risk=0.75, bioactivity_strength=0.9,
+                lifestyle_categories=["metabolism", "digestion", "cardiovascular", "immunity"]
+            ),
+            CompoundMetadata(
+                name="berbamine", chembl_id="CHEMBL2103821",
+                research_level=0.5, drug_interaction_risk=0.5, bioactivity_strength=0.5,
+                lifestyle_categories=["immunity"]
+            ),
+            CompoundMetadata(
+                name="palmatine", chembl_id="CHEMBL298700",
+                research_level=0.5, drug_interaction_risk=0.4, bioactivity_strength=0.5,
+                lifestyle_categories=["digestion"]
+            ),
+            CompoundMetadata(
+                name="jatrorrhizine",
+                research_level=0.3, drug_interaction_risk=0.3, bioactivity_strength=0.4,
+                lifestyle_categories=["digestion"]
+            ),
+        ],
+        traditional_uses=["Digestive aid", "Antimicrobial", "Blood sugar support"],
+        parts_used=["Root", "Bark"]
+    ),
+
+    # === MODERATE RESEARCH PLANTS ===
+
+    "valeriana officinalis": PlantCompoundInfo(
+        scientific_name="Valeriana officinalis",
+        common_names=["Valerian"],
+        family="Caprifoliaceae",
+        compounds=[
+            CompoundMetadata(
+                name="valerenic acid", chembl_id="CHEMBL363795",
+                research_level=0.75, drug_interaction_risk=0.6, bioactivity_strength=0.75,
+                lifestyle_categories=["sleep", "mood"]
+            ),
+            CompoundMetadata(
+                name="isovaleric acid",
+                research_level=0.5, drug_interaction_risk=0.3, bioactivity_strength=0.4,
+                lifestyle_categories=["sleep"]
+            ),
+            CompoundMetadata(
+                name="valeranone",
+                research_level=0.4, drug_interaction_risk=0.3, bioactivity_strength=0.4,
+                lifestyle_categories=["sleep"]
+            ),
+            CompoundMetadata(
+                name="valepotriates",
+                research_level=0.4, drug_interaction_risk=0.4, bioactivity_strength=0.5,
+                lifestyle_categories=["sleep", "mood"]
+            ),
+        ],
+        traditional_uses=["Sleep aid", "Anxiety relief", "Relaxation"],
+        parts_used=["Root"]
     ),
 
     "echinacea purpurea": PlantCompoundInfo(
@@ -107,41 +445,29 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Purple Coneflower", "Echinacea"],
         family="Asteraceae",
         compounds=[
-            {"name": "echinacoside"},
-            {"name": "cichoric acid", "chembl_id": "CHEMBL1235962"},
-            {"name": "alkamides"},
-            {"name": "caffeic acid", "chembl_id": "CHEMBL159318"},
+            CompoundMetadata(
+                name="cichoric acid", chembl_id="CHEMBL1235962",
+                research_level=0.7, drug_interaction_risk=0.4, bioactivity_strength=0.65,
+                lifestyle_categories=["immunity"]
+            ),
+            CompoundMetadata(
+                name="echinacoside",
+                research_level=0.6, drug_interaction_risk=0.35, bioactivity_strength=0.6,
+                lifestyle_categories=["immunity", "inflammation"]
+            ),
+            CompoundMetadata(
+                name="alkamides",
+                research_level=0.55, drug_interaction_risk=0.4, bioactivity_strength=0.55,
+                lifestyle_categories=["immunity"]
+            ),
+            CompoundMetadata(
+                name="caffeic acid", chembl_id="CHEMBL159318",
+                research_level=0.6, drug_interaction_risk=0.3, bioactivity_strength=0.5,
+                lifestyle_categories=["inflammation"]
+            ),
         ],
         traditional_uses=["Immune support", "Cold prevention", "Anti-inflammatory"],
         parts_used=["Root", "Aerial parts"]
-    ),
-
-    "hypericum perforatum": PlantCompoundInfo(
-        scientific_name="Hypericum perforatum",
-        common_names=["St. John's Wort"],
-        family="Hypericaceae",
-        compounds=[
-            {"name": "hypericin", "chembl_id": "CHEMBL297399"},
-            {"name": "hyperforin", "chembl_id": "CHEMBL138647"},
-            {"name": "pseudohypericin"},
-            {"name": "quercetin", "chembl_id": "CHEMBL159"},
-        ],
-        traditional_uses=["Mood support", "Nerve pain", "Wound healing"],
-        parts_used=["Aerial parts", "Flowers"]
-    ),
-
-    "valeriana officinalis": PlantCompoundInfo(
-        scientific_name="Valeriana officinalis",
-        common_names=["Valerian"],
-        family="Caprifoliaceae",
-        compounds=[
-            {"name": "valerenic acid", "chembl_id": "CHEMBL363795"},
-            {"name": "isovaleric acid"},
-            {"name": "valeranone"},
-            {"name": "valepotriates"},
-        ],
-        traditional_uses=["Sleep aid", "Anxiety relief", "Relaxation"],
-        parts_used=["Root"]
     ),
 
     "matricaria chamomilla": PlantCompoundInfo(
@@ -149,10 +475,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Chamomile", "German Chamomile"],
         family="Asteraceae",
         compounds=[
-            {"name": "apigenin", "chembl_id": "CHEMBL28"},
-            {"name": "bisabolol", "chembl_id": "CHEMBL437162"},
-            {"name": "chamazulene"},
-            {"name": "matricin"},
+            CompoundMetadata(
+                name="apigenin", chembl_id="CHEMBL28",
+                research_level=0.8, drug_interaction_risk=0.4, bioactivity_strength=0.7,
+                lifestyle_categories=["sleep", "mood", "inflammation"]
+            ),
+            CompoundMetadata(
+                name="bisabolol", chembl_id="CHEMBL437162",
+                research_level=0.65, drug_interaction_risk=0.25, bioactivity_strength=0.55,
+                lifestyle_categories=["skin", "digestion"]
+            ),
+            CompoundMetadata(
+                name="chamazulene",
+                research_level=0.5, drug_interaction_risk=0.2, bioactivity_strength=0.5,
+                lifestyle_categories=["inflammation", "skin"]
+            ),
+            CompoundMetadata(
+                name="matricin",
+                research_level=0.4, drug_interaction_risk=0.2, bioactivity_strength=0.4,
+                lifestyle_categories=["inflammation"]
+            ),
         ],
         traditional_uses=["Sleep aid", "Digestive aid", "Anti-inflammatory"],
         parts_used=["Flowers"]
@@ -163,10 +505,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Peppermint"],
         family="Lamiaceae",
         compounds=[
-            {"name": "menthol", "chembl_id": "CHEMBL446220"},
-            {"name": "menthone", "chembl_id": "CHEMBL449072"},
-            {"name": "menthyl acetate"},
-            {"name": "rosmarinic acid", "chembl_id": "CHEMBL159778"},
+            CompoundMetadata(
+                name="menthol", chembl_id="CHEMBL446220",
+                research_level=0.85, drug_interaction_risk=0.35, bioactivity_strength=0.75,
+                lifestyle_categories=["digestion", "pain"]
+            ),
+            CompoundMetadata(
+                name="menthone", chembl_id="CHEMBL449072",
+                research_level=0.5, drug_interaction_risk=0.2, bioactivity_strength=0.45,
+                lifestyle_categories=["digestion"]
+            ),
+            CompoundMetadata(
+                name="rosmarinic acid", chembl_id="CHEMBL159778",
+                research_level=0.7, drug_interaction_risk=0.3, bioactivity_strength=0.6,
+                lifestyle_categories=["inflammation"]
+            ),
+            CompoundMetadata(
+                name="menthyl acetate",
+                research_level=0.4, drug_interaction_risk=0.2, bioactivity_strength=0.35,
+                lifestyle_categories=["digestion"]
+            ),
         ],
         traditional_uses=["Digestive aid", "Headache relief", "Respiratory support"],
         parts_used=["Leaves"]
@@ -177,10 +535,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Lavender", "English Lavender"],
         family="Lamiaceae",
         compounds=[
-            {"name": "linalool", "chembl_id": "CHEMBL15768"},
-            {"name": "linalyl acetate", "chembl_id": "CHEMBL449584"},
-            {"name": "lavandulol"},
-            {"name": "camphor", "chembl_id": "CHEMBL505974"},
+            CompoundMetadata(
+                name="linalool", chembl_id="CHEMBL15768",
+                research_level=0.8, drug_interaction_risk=0.3, bioactivity_strength=0.7,
+                lifestyle_categories=["sleep", "mood"]
+            ),
+            CompoundMetadata(
+                name="linalyl acetate", chembl_id="CHEMBL449584",
+                research_level=0.6, drug_interaction_risk=0.25, bioactivity_strength=0.55,
+                lifestyle_categories=["mood"]
+            ),
+            CompoundMetadata(
+                name="camphor", chembl_id="CHEMBL505974",
+                research_level=0.65, drug_interaction_risk=0.35, bioactivity_strength=0.5,
+                lifestyle_categories=["pain"]
+            ),
+            CompoundMetadata(
+                name="lavandulol",
+                research_level=0.35, drug_interaction_risk=0.2, bioactivity_strength=0.35,
+                lifestyle_categories=["mood"]
+            ),
         ],
         traditional_uses=["Relaxation", "Sleep aid", "Anxiety relief"],
         parts_used=["Flowers"]
@@ -191,41 +565,29 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Aloe", "True Aloe"],
         family="Asphodelaceae",
         compounds=[
-            {"name": "aloin", "chembl_id": "CHEMBL245499"},
-            {"name": "aloe-emodin", "chembl_id": "CHEMBL161619"},
-            {"name": "acemannan"},
-            {"name": "barbaloin"},
+            CompoundMetadata(
+                name="aloe-emodin", chembl_id="CHEMBL161619",
+                research_level=0.7, drug_interaction_risk=0.55, bioactivity_strength=0.65,
+                lifestyle_categories=["digestion", "skin"]
+            ),
+            CompoundMetadata(
+                name="aloin", chembl_id="CHEMBL245499",
+                research_level=0.65, drug_interaction_risk=0.6, bioactivity_strength=0.6,
+                lifestyle_categories=["digestion"]
+            ),
+            CompoundMetadata(
+                name="acemannan",
+                research_level=0.55, drug_interaction_risk=0.3, bioactivity_strength=0.5,
+                lifestyle_categories=["immunity", "skin"]
+            ),
+            CompoundMetadata(
+                name="barbaloin",
+                research_level=0.4, drug_interaction_risk=0.45, bioactivity_strength=0.45,
+                lifestyle_categories=["digestion"]
+            ),
         ],
         traditional_uses=["Wound healing", "Skin care", "Digestive aid"],
         parts_used=["Leaves", "Gel"]
-    ),
-
-    "cannabis sativa": PlantCompoundInfo(
-        scientific_name="Cannabis sativa",
-        common_names=["Hemp", "Cannabis", "Marijuana"],
-        family="Cannabaceae",
-        compounds=[
-            {"name": "cannabidiol", "chembl_id": "CHEMBL190401"},
-            {"name": "delta-9-tetrahydrocannabinol", "chembl_id": "CHEMBL361"},
-            {"name": "cannabinol", "chembl_id": "CHEMBL189468"},
-            {"name": "cannabigerol", "chembl_id": "CHEMBL445988"},
-        ],
-        traditional_uses=["Pain relief", "Relaxation", "Appetite stimulation"],
-        parts_used=["Flowers", "Leaves"]
-    ),
-
-    "glycyrrhiza glabra": PlantCompoundInfo(
-        scientific_name="Glycyrrhiza glabra",
-        common_names=["Licorice", "Liquorice"],
-        family="Fabaceae",
-        compounds=[
-            {"name": "glycyrrhizin", "chembl_id": "CHEMBL490469"},
-            {"name": "glabridin", "chembl_id": "CHEMBL260681"},
-            {"name": "liquiritigenin", "chembl_id": "CHEMBL285941"},
-            {"name": "isoliquiritigenin", "chembl_id": "CHEMBL11867"},
-        ],
-        traditional_uses=["Digestive aid", "Respiratory support", "Anti-inflammatory"],
-        parts_used=["Root"]
     ),
 
     "silybum marianum": PlantCompoundInfo(
@@ -233,10 +595,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Milk Thistle"],
         family="Asteraceae",
         compounds=[
-            {"name": "silymarin"},
-            {"name": "silybin", "chembl_id": "CHEMBL159654"},
-            {"name": "silychristin"},
-            {"name": "silydianin"},
+            CompoundMetadata(
+                name="silybin", chembl_id="CHEMBL159654",
+                research_level=0.8, drug_interaction_risk=0.5, bioactivity_strength=0.75,
+                lifestyle_categories=["metabolism"]
+            ),
+            CompoundMetadata(
+                name="silymarin",
+                research_level=0.75, drug_interaction_risk=0.45, bioactivity_strength=0.7,
+                lifestyle_categories=["metabolism"]
+            ),
+            CompoundMetadata(
+                name="silychristin",
+                research_level=0.45, drug_interaction_risk=0.35, bioactivity_strength=0.45,
+                lifestyle_categories=["metabolism"]
+            ),
+            CompoundMetadata(
+                name="silydianin",
+                research_level=0.4, drug_interaction_risk=0.3, bioactivity_strength=0.4,
+                lifestyle_categories=["metabolism"]
+            ),
         ],
         traditional_uses=["Liver support", "Detoxification", "Antioxidant"],
         parts_used=["Seeds"]
@@ -247,27 +625,29 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Ashwagandha", "Indian Ginseng"],
         family="Solanaceae",
         compounds=[
-            {"name": "withaferin A", "chembl_id": "CHEMBL136415"},
-            {"name": "withanolide A"},
-            {"name": "withanolide D"},
-            {"name": "sitoindosides"},
+            CompoundMetadata(
+                name="withaferin A", chembl_id="CHEMBL136415",
+                research_level=0.75, drug_interaction_risk=0.55, bioactivity_strength=0.8,
+                lifestyle_categories=["mood", "energy", "immunity"]
+            ),
+            CompoundMetadata(
+                name="withanolide A",
+                research_level=0.6, drug_interaction_risk=0.45, bioactivity_strength=0.65,
+                lifestyle_categories=["cognition", "mood"]
+            ),
+            CompoundMetadata(
+                name="withanolide D",
+                research_level=0.5, drug_interaction_risk=0.4, bioactivity_strength=0.55,
+                lifestyle_categories=["immunity"]
+            ),
+            CompoundMetadata(
+                name="sitoindosides",
+                research_level=0.4, drug_interaction_risk=0.35, bioactivity_strength=0.45,
+                lifestyle_categories=["energy"]
+            ),
         ],
         traditional_uses=["Adaptogen", "Stress relief", "Energy"],
         parts_used=["Root"]
-    ),
-
-    "berberis vulgaris": PlantCompoundInfo(
-        scientific_name="Berberis vulgaris",
-        common_names=["Barberry"],
-        family="Berberidaceae",
-        compounds=[
-            {"name": "berberine", "chembl_id": "CHEMBL1076"},
-            {"name": "berbamine", "chembl_id": "CHEMBL2103821"},
-            {"name": "palmatine", "chembl_id": "CHEMBL298700"},
-            {"name": "jatrorrhizine"},
-        ],
-        traditional_uses=["Digestive aid", "Antimicrobial", "Blood sugar support"],
-        parts_used=["Root", "Bark"]
     ),
 
     "crataegus monogyna": PlantCompoundInfo(
@@ -275,24 +655,118 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Hawthorn"],
         family="Rosaceae",
         compounds=[
-            {"name": "vitexin", "chembl_id": "CHEMBL249851"},
-            {"name": "hyperoside", "chembl_id": "CHEMBL459543"},
-            {"name": "procyanidins"},
-            {"name": "epicatechin", "chembl_id": "CHEMBL159"},
+            CompoundMetadata(
+                name="vitexin", chembl_id="CHEMBL249851",
+                research_level=0.7, drug_interaction_risk=0.6, bioactivity_strength=0.7,
+                lifestyle_categories=["cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="hyperoside", chembl_id="CHEMBL459543",
+                research_level=0.6, drug_interaction_risk=0.5, bioactivity_strength=0.6,
+                lifestyle_categories=["cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="epicatechin", chembl_id="CHEMBL159",
+                research_level=0.7, drug_interaction_risk=0.35, bioactivity_strength=0.55,
+                lifestyle_categories=["cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="procyanidins",
+                research_level=0.55, drug_interaction_risk=0.4, bioactivity_strength=0.5,
+                lifestyle_categories=["cardiovascular"]
+            ),
         ],
         traditional_uses=["Heart health", "Blood pressure support", "Antioxidant"],
         parts_used=["Berries", "Leaves", "Flowers"]
     ),
+
+    "allium sativum": PlantCompoundInfo(
+        scientific_name="Allium sativum",
+        common_names=["Garlic"],
+        family="Amaryllidaceae",
+        compounds=[
+            CompoundMetadata(
+                name="allicin", chembl_id="CHEMBL87341",
+                research_level=0.85, drug_interaction_risk=0.65, bioactivity_strength=0.8,
+                lifestyle_categories=["cardiovascular", "immunity"]
+            ),
+            CompoundMetadata(
+                name="ajoene", chembl_id="CHEMBL429336",
+                research_level=0.6, drug_interaction_risk=0.55, bioactivity_strength=0.6,
+                lifestyle_categories=["cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="alliin",
+                research_level=0.55, drug_interaction_risk=0.4, bioactivity_strength=0.5,
+                lifestyle_categories=["immunity"]
+            ),
+            CompoundMetadata(
+                name="diallyl disulfide",
+                research_level=0.5, drug_interaction_risk=0.4, bioactivity_strength=0.5,
+                lifestyle_categories=["immunity"]
+            ),
+        ],
+        traditional_uses=["Cardiovascular health", "Immune support", "Antimicrobial"],
+        parts_used=["Bulb"]
+    ),
+
+    "piper nigrum": PlantCompoundInfo(
+        scientific_name="Piper nigrum",
+        common_names=["Black Pepper"],
+        family="Piperaceae",
+        compounds=[
+            CompoundMetadata(
+                name="piperine", chembl_id="CHEMBL479",
+                research_level=0.85, drug_interaction_risk=0.8, bioactivity_strength=0.75,
+                lifestyle_categories=["metabolism", "digestion"]
+            ),
+            CompoundMetadata(
+                name="chavicine",
+                research_level=0.35, drug_interaction_risk=0.3, bioactivity_strength=0.35,
+                lifestyle_categories=["digestion"]
+            ),
+            CompoundMetadata(
+                name="piperidine",
+                research_level=0.4, drug_interaction_risk=0.35, bioactivity_strength=0.35,
+                lifestyle_categories=["digestion"]
+            ),
+            CompoundMetadata(
+                name="piperonal",
+                research_level=0.3, drug_interaction_risk=0.25, bioactivity_strength=0.3,
+                lifestyle_categories=["digestion"]
+            ),
+        ],
+        traditional_uses=["Digestive aid", "Bioavailability enhancer", "Metabolism"],
+        parts_used=["Fruit"]
+    ),
+
+    # === MORE PLANTS ===
 
     "taraxacum officinale": PlantCompoundInfo(
         scientific_name="Taraxacum officinale",
         common_names=["Dandelion"],
         family="Asteraceae",
         compounds=[
-            {"name": "taraxasterol"},
-            {"name": "taraxacin"},
-            {"name": "chicoric acid", "chembl_id": "CHEMBL1235962"},
-            {"name": "luteolin", "chembl_id": "CHEMBL159"},
+            CompoundMetadata(
+                name="chicoric acid", chembl_id="CHEMBL1235962",
+                research_level=0.6, drug_interaction_risk=0.35, bioactivity_strength=0.55,
+                lifestyle_categories=["digestion", "metabolism"]
+            ),
+            CompoundMetadata(
+                name="luteolin", chembl_id="CHEMBL159",
+                research_level=0.7, drug_interaction_risk=0.35, bioactivity_strength=0.6,
+                lifestyle_categories=["inflammation"]
+            ),
+            CompoundMetadata(
+                name="taraxasterol",
+                research_level=0.4, drug_interaction_risk=0.25, bioactivity_strength=0.4,
+                lifestyle_categories=["digestion"]
+            ),
+            CompoundMetadata(
+                name="taraxacin",
+                research_level=0.35, drug_interaction_risk=0.2, bioactivity_strength=0.35,
+                lifestyle_categories=["digestion"]
+            ),
         ],
         traditional_uses=["Liver support", "Diuretic", "Digestive aid"],
         parts_used=["Root", "Leaves"]
@@ -303,10 +777,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Rosemary"],
         family="Lamiaceae",
         compounds=[
-            {"name": "rosmarinic acid", "chembl_id": "CHEMBL159778"},
-            {"name": "carnosic acid", "chembl_id": "CHEMBL363820"},
-            {"name": "carnosol", "chembl_id": "CHEMBL252880"},
-            {"name": "ursolic acid", "chembl_id": "CHEMBL264596"},
+            CompoundMetadata(
+                name="rosmarinic acid", chembl_id="CHEMBL159778",
+                research_level=0.75, drug_interaction_risk=0.35, bioactivity_strength=0.65,
+                lifestyle_categories=["cognition", "inflammation"]
+            ),
+            CompoundMetadata(
+                name="carnosic acid", chembl_id="CHEMBL363820",
+                research_level=0.7, drug_interaction_risk=0.3, bioactivity_strength=0.6,
+                lifestyle_categories=["cognition"]
+            ),
+            CompoundMetadata(
+                name="carnosol", chembl_id="CHEMBL252880",
+                research_level=0.6, drug_interaction_risk=0.3, bioactivity_strength=0.55,
+                lifestyle_categories=["inflammation"]
+            ),
+            CompoundMetadata(
+                name="ursolic acid", chembl_id="CHEMBL264596",
+                research_level=0.65, drug_interaction_risk=0.35, bioactivity_strength=0.55,
+                lifestyle_categories=["metabolism", "inflammation"]
+            ),
         ],
         traditional_uses=["Memory enhancement", "Antioxidant", "Digestive aid"],
         parts_used=["Leaves"]
@@ -317,10 +807,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Sage", "Common Sage"],
         family="Lamiaceae",
         compounds=[
-            {"name": "rosmarinic acid", "chembl_id": "CHEMBL159778"},
-            {"name": "carnosic acid", "chembl_id": "CHEMBL363820"},
-            {"name": "thujone", "chembl_id": "CHEMBL430456"},
-            {"name": "salvianolic acid"},
+            CompoundMetadata(
+                name="rosmarinic acid", chembl_id="CHEMBL159778",
+                research_level=0.75, drug_interaction_risk=0.35, bioactivity_strength=0.65,
+                lifestyle_categories=["cognition", "inflammation"]
+            ),
+            CompoundMetadata(
+                name="carnosic acid", chembl_id="CHEMBL363820",
+                research_level=0.7, drug_interaction_risk=0.3, bioactivity_strength=0.6,
+                lifestyle_categories=["cognition"]
+            ),
+            CompoundMetadata(
+                name="thujone", chembl_id="CHEMBL430456",
+                research_level=0.6, drug_interaction_risk=0.65, bioactivity_strength=0.55,
+                lifestyle_categories=["cognition"]
+            ),
+            CompoundMetadata(
+                name="salvianolic acid",
+                research_level=0.5, drug_interaction_risk=0.3, bioactivity_strength=0.5,
+                lifestyle_categories=["cardiovascular"]
+            ),
         ],
         traditional_uses=["Memory support", "Sore throat relief", "Digestive aid"],
         parts_used=["Leaves"]
@@ -331,10 +837,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Thyme"],
         family="Lamiaceae",
         compounds=[
-            {"name": "thymol", "chembl_id": "CHEMBL26899"},
-            {"name": "carvacrol", "chembl_id": "CHEMBL235584"},
-            {"name": "rosmarinic acid", "chembl_id": "CHEMBL159778"},
-            {"name": "luteolin", "chembl_id": "CHEMBL159"},
+            CompoundMetadata(
+                name="thymol", chembl_id="CHEMBL26899",
+                research_level=0.8, drug_interaction_risk=0.4, bioactivity_strength=0.7,
+                lifestyle_categories=["immunity"]
+            ),
+            CompoundMetadata(
+                name="carvacrol", chembl_id="CHEMBL235584",
+                research_level=0.7, drug_interaction_risk=0.35, bioactivity_strength=0.65,
+                lifestyle_categories=["immunity", "digestion"]
+            ),
+            CompoundMetadata(
+                name="rosmarinic acid", chembl_id="CHEMBL159778",
+                research_level=0.75, drug_interaction_risk=0.35, bioactivity_strength=0.65,
+                lifestyle_categories=["inflammation"]
+            ),
+            CompoundMetadata(
+                name="luteolin", chembl_id="CHEMBL159",
+                research_level=0.7, drug_interaction_risk=0.35, bioactivity_strength=0.6,
+                lifestyle_categories=["inflammation"]
+            ),
         ],
         traditional_uses=["Respiratory support", "Antimicrobial", "Digestive aid"],
         parts_used=["Leaves"]
@@ -345,10 +867,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Basil", "Sweet Basil"],
         family="Lamiaceae",
         compounds=[
-            {"name": "linalool", "chembl_id": "CHEMBL15768"},
-            {"name": "eugenol", "chembl_id": "CHEMBL486"},
-            {"name": "rosmarinic acid", "chembl_id": "CHEMBL159778"},
-            {"name": "apigenin", "chembl_id": "CHEMBL28"},
+            CompoundMetadata(
+                name="eugenol", chembl_id="CHEMBL486",
+                research_level=0.75, drug_interaction_risk=0.5, bioactivity_strength=0.65,
+                lifestyle_categories=["pain", "inflammation"]
+            ),
+            CompoundMetadata(
+                name="linalool", chembl_id="CHEMBL15768",
+                research_level=0.8, drug_interaction_risk=0.3, bioactivity_strength=0.7,
+                lifestyle_categories=["mood", "sleep"]
+            ),
+            CompoundMetadata(
+                name="rosmarinic acid", chembl_id="CHEMBL159778",
+                research_level=0.75, drug_interaction_risk=0.35, bioactivity_strength=0.65,
+                lifestyle_categories=["inflammation"]
+            ),
+            CompoundMetadata(
+                name="apigenin", chembl_id="CHEMBL28",
+                research_level=0.8, drug_interaction_risk=0.4, bioactivity_strength=0.7,
+                lifestyle_categories=["sleep", "mood"]
+            ),
         ],
         traditional_uses=["Digestive aid", "Anti-inflammatory", "Stress relief"],
         parts_used=["Leaves"]
@@ -359,10 +897,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Holy Basil", "Tulsi"],
         family="Lamiaceae",
         compounds=[
-            {"name": "eugenol", "chembl_id": "CHEMBL486"},
-            {"name": "ursolic acid", "chembl_id": "CHEMBL264596"},
-            {"name": "rosmarinic acid", "chembl_id": "CHEMBL159778"},
-            {"name": "apigenin", "chembl_id": "CHEMBL28"},
+            CompoundMetadata(
+                name="eugenol", chembl_id="CHEMBL486",
+                research_level=0.75, drug_interaction_risk=0.5, bioactivity_strength=0.65,
+                lifestyle_categories=["pain", "inflammation"]
+            ),
+            CompoundMetadata(
+                name="ursolic acid", chembl_id="CHEMBL264596",
+                research_level=0.65, drug_interaction_risk=0.35, bioactivity_strength=0.55,
+                lifestyle_categories=["metabolism", "inflammation"]
+            ),
+            CompoundMetadata(
+                name="rosmarinic acid", chembl_id="CHEMBL159778",
+                research_level=0.75, drug_interaction_risk=0.35, bioactivity_strength=0.65,
+                lifestyle_categories=["inflammation"]
+            ),
+            CompoundMetadata(
+                name="apigenin", chembl_id="CHEMBL28",
+                research_level=0.8, drug_interaction_risk=0.4, bioactivity_strength=0.7,
+                lifestyle_categories=["mood", "sleep"]
+            ),
         ],
         traditional_uses=["Adaptogen", "Respiratory support", "Stress relief"],
         parts_used=["Leaves"]
@@ -373,10 +927,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Gotu Kola", "Asiatic Pennywort"],
         family="Apiaceae",
         compounds=[
-            {"name": "asiaticoside", "chembl_id": "CHEMBL428647"},
-            {"name": "asiatic acid", "chembl_id": "CHEMBL347645"},
-            {"name": "madecassoside", "chembl_id": "CHEMBL506176"},
-            {"name": "madecassic acid"},
+            CompoundMetadata(
+                name="asiaticoside", chembl_id="CHEMBL428647",
+                research_level=0.75, drug_interaction_risk=0.4, bioactivity_strength=0.7,
+                lifestyle_categories=["cognition", "skin"]
+            ),
+            CompoundMetadata(
+                name="asiatic acid", chembl_id="CHEMBL347645",
+                research_level=0.65, drug_interaction_risk=0.35, bioactivity_strength=0.6,
+                lifestyle_categories=["skin"]
+            ),
+            CompoundMetadata(
+                name="madecassoside", chembl_id="CHEMBL506176",
+                research_level=0.6, drug_interaction_risk=0.3, bioactivity_strength=0.55,
+                lifestyle_categories=["skin"]
+            ),
+            CompoundMetadata(
+                name="madecassic acid",
+                research_level=0.5, drug_interaction_risk=0.3, bioactivity_strength=0.5,
+                lifestyle_categories=["skin"]
+            ),
         ],
         traditional_uses=["Cognitive support", "Wound healing", "Skin health"],
         parts_used=["Leaves"]
@@ -387,10 +957,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Brahmi", "Water Hyssop"],
         family="Plantaginaceae",
         compounds=[
-            {"name": "bacoside A"},
-            {"name": "bacoside B"},
-            {"name": "bacosides"},
-            {"name": "bacopa saponins"},
+            CompoundMetadata(
+                name="bacoside A",
+                research_level=0.75, drug_interaction_risk=0.4, bioactivity_strength=0.7,
+                lifestyle_categories=["cognition", "mood"]
+            ),
+            CompoundMetadata(
+                name="bacoside B",
+                research_level=0.6, drug_interaction_risk=0.35, bioactivity_strength=0.6,
+                lifestyle_categories=["cognition"]
+            ),
+            CompoundMetadata(
+                name="bacosides",
+                research_level=0.7, drug_interaction_risk=0.4, bioactivity_strength=0.65,
+                lifestyle_categories=["cognition", "mood"]
+            ),
+            CompoundMetadata(
+                name="bacopa saponins",
+                research_level=0.5, drug_interaction_risk=0.35, bioactivity_strength=0.5,
+                lifestyle_categories=["cognition"]
+            ),
         ],
         traditional_uses=["Memory enhancement", "Cognitive support", "Anxiety relief"],
         parts_used=["Whole plant"]
@@ -401,10 +987,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Rhodiola", "Golden Root", "Arctic Root"],
         family="Crassulaceae",
         compounds=[
-            {"name": "salidroside", "chembl_id": "CHEMBL433802"},
-            {"name": "rosavin"},
-            {"name": "rosarin"},
-            {"name": "tyrosol", "chembl_id": "CHEMBL291226"},
+            CompoundMetadata(
+                name="salidroside", chembl_id="CHEMBL433802",
+                research_level=0.75, drug_interaction_risk=0.45, bioactivity_strength=0.7,
+                lifestyle_categories=["energy", "mood", "cognition"]
+            ),
+            CompoundMetadata(
+                name="rosavin",
+                research_level=0.6, drug_interaction_risk=0.4, bioactivity_strength=0.6,
+                lifestyle_categories=["energy", "mood"]
+            ),
+            CompoundMetadata(
+                name="rosarin",
+                research_level=0.5, drug_interaction_risk=0.35, bioactivity_strength=0.5,
+                lifestyle_categories=["energy"]
+            ),
+            CompoundMetadata(
+                name="tyrosol", chembl_id="CHEMBL291226",
+                research_level=0.55, drug_interaction_risk=0.3, bioactivity_strength=0.5,
+                lifestyle_categories=["cardiovascular"]
+            ),
         ],
         traditional_uses=["Adaptogen", "Energy", "Mental performance"],
         parts_used=["Root"]
@@ -415,10 +1017,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Siberian Ginseng", "Eleuthero"],
         family="Araliaceae",
         compounds=[
-            {"name": "eleutherosides"},
-            {"name": "syringin"},
-            {"name": "isofraxidin"},
-            {"name": "chlorogenic acid", "chembl_id": "CHEMBL282820"},
+            CompoundMetadata(
+                name="chlorogenic acid", chembl_id="CHEMBL282820",
+                research_level=0.7, drug_interaction_risk=0.35, bioactivity_strength=0.6,
+                lifestyle_categories=["metabolism", "energy"]
+            ),
+            CompoundMetadata(
+                name="eleutherosides",
+                research_level=0.65, drug_interaction_risk=0.45, bioactivity_strength=0.6,
+                lifestyle_categories=["energy", "immunity"]
+            ),
+            CompoundMetadata(
+                name="syringin",
+                research_level=0.5, drug_interaction_risk=0.35, bioactivity_strength=0.5,
+                lifestyle_categories=["energy"]
+            ),
+            CompoundMetadata(
+                name="isofraxidin",
+                research_level=0.4, drug_interaction_risk=0.3, bioactivity_strength=0.4,
+                lifestyle_categories=["inflammation"]
+            ),
         ],
         traditional_uses=["Adaptogen", "Immune support", "Endurance"],
         parts_used=["Root"]
@@ -429,10 +1047,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Burdock"],
         family="Asteraceae",
         compounds=[
-            {"name": "arctigenin", "chembl_id": "CHEMBL101194"},
-            {"name": "arctiin"},
-            {"name": "chlorogenic acid", "chembl_id": "CHEMBL282820"},
-            {"name": "inulin"},
+            CompoundMetadata(
+                name="arctigenin", chembl_id="CHEMBL101194",
+                research_level=0.65, drug_interaction_risk=0.4, bioactivity_strength=0.6,
+                lifestyle_categories=["inflammation", "immunity"]
+            ),
+            CompoundMetadata(
+                name="chlorogenic acid", chembl_id="CHEMBL282820",
+                research_level=0.7, drug_interaction_risk=0.35, bioactivity_strength=0.6,
+                lifestyle_categories=["metabolism"]
+            ),
+            CompoundMetadata(
+                name="arctiin",
+                research_level=0.5, drug_interaction_risk=0.35, bioactivity_strength=0.5,
+                lifestyle_categories=["skin"]
+            ),
+            CompoundMetadata(
+                name="inulin",
+                research_level=0.6, drug_interaction_risk=0.2, bioactivity_strength=0.5,
+                lifestyle_categories=["digestion"]
+            ),
         ],
         traditional_uses=["Blood purification", "Skin health", "Digestive aid"],
         parts_used=["Root"]
@@ -443,10 +1077,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Stinging Nettle", "Nettle"],
         family="Urticaceae",
         compounds=[
-            {"name": "quercetin", "chembl_id": "CHEMBL159"},
-            {"name": "kaempferol", "chembl_id": "CHEMBL284159"},
-            {"name": "scopoletin", "chembl_id": "CHEMBL260032"},
-            {"name": "beta-sitosterol", "chembl_id": "CHEMBL90976"},
+            CompoundMetadata(
+                name="quercetin", chembl_id="CHEMBL159",
+                research_level=0.8, drug_interaction_risk=0.4, bioactivity_strength=0.6,
+                lifestyle_categories=["inflammation", "immunity"]
+            ),
+            CompoundMetadata(
+                name="beta-sitosterol", chembl_id="CHEMBL90976",
+                research_level=0.7, drug_interaction_risk=0.4, bioactivity_strength=0.55,
+                lifestyle_categories=["inflammation"]
+            ),
+            CompoundMetadata(
+                name="kaempferol", chembl_id="CHEMBL284159",
+                research_level=0.7, drug_interaction_risk=0.3, bioactivity_strength=0.5,
+                lifestyle_categories=["inflammation"]
+            ),
+            CompoundMetadata(
+                name="scopoletin", chembl_id="CHEMBL260032",
+                research_level=0.5, drug_interaction_risk=0.35, bioactivity_strength=0.45,
+                lifestyle_categories=["inflammation"]
+            ),
         ],
         traditional_uses=["Allergy relief", "Prostate support", "Anti-inflammatory"],
         parts_used=["Leaves", "Root"]
@@ -457,10 +1107,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Elderberry", "Black Elder"],
         family="Adoxaceae",
         compounds=[
-            {"name": "cyanidin", "chembl_id": "CHEMBL17585"},
-            {"name": "quercetin", "chembl_id": "CHEMBL159"},
-            {"name": "rutin", "chembl_id": "CHEMBL159173"},
-            {"name": "sambucyanin"},
+            CompoundMetadata(
+                name="cyanidin", chembl_id="CHEMBL17585",
+                research_level=0.7, drug_interaction_risk=0.35, bioactivity_strength=0.6,
+                lifestyle_categories=["immunity"]
+            ),
+            CompoundMetadata(
+                name="quercetin", chembl_id="CHEMBL159",
+                research_level=0.8, drug_interaction_risk=0.4, bioactivity_strength=0.6,
+                lifestyle_categories=["inflammation", "immunity"]
+            ),
+            CompoundMetadata(
+                name="rutin", chembl_id="CHEMBL159173",
+                research_level=0.65, drug_interaction_risk=0.35, bioactivity_strength=0.55,
+                lifestyle_categories=["cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="sambucyanin",
+                research_level=0.4, drug_interaction_risk=0.25, bioactivity_strength=0.4,
+                lifestyle_categories=["immunity"]
+            ),
         ],
         traditional_uses=["Immune support", "Cold/flu relief", "Antioxidant"],
         parts_used=["Berries", "Flowers"]
@@ -471,10 +1137,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Andrographis", "King of Bitters"],
         family="Acanthaceae",
         compounds=[
-            {"name": "andrographolide", "chembl_id": "CHEMBL9158"},
-            {"name": "neoandrographolide"},
-            {"name": "14-deoxy-andrographolide"},
-            {"name": "andrograpanin"},
+            CompoundMetadata(
+                name="andrographolide", chembl_id="CHEMBL9158",
+                research_level=0.8, drug_interaction_risk=0.55, bioactivity_strength=0.75,
+                lifestyle_categories=["immunity", "inflammation"]
+            ),
+            CompoundMetadata(
+                name="neoandrographolide",
+                research_level=0.5, drug_interaction_risk=0.4, bioactivity_strength=0.5,
+                lifestyle_categories=["immunity"]
+            ),
+            CompoundMetadata(
+                name="14-deoxy-andrographolide",
+                research_level=0.45, drug_interaction_risk=0.35, bioactivity_strength=0.45,
+                lifestyle_categories=["immunity"]
+            ),
+            CompoundMetadata(
+                name="andrograpanin",
+                research_level=0.4, drug_interaction_risk=0.35, bioactivity_strength=0.4,
+                lifestyle_categories=["immunity"]
+            ),
         ],
         traditional_uses=["Immune support", "Cold relief", "Liver protection"],
         parts_used=["Leaves", "Stem"]
@@ -485,10 +1167,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Astragalus", "Huang Qi"],
         family="Fabaceae",
         compounds=[
-            {"name": "astragaloside IV", "chembl_id": "CHEMBL475966"},
-            {"name": "cycloastragenol"},
-            {"name": "formononetin", "chembl_id": "CHEMBL100159"},
-            {"name": "calycosin", "chembl_id": "CHEMBL314973"},
+            CompoundMetadata(
+                name="astragaloside IV", chembl_id="CHEMBL475966",
+                research_level=0.75, drug_interaction_risk=0.45, bioactivity_strength=0.7,
+                lifestyle_categories=["immunity", "cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="formononetin", chembl_id="CHEMBL100159",
+                research_level=0.6, drug_interaction_risk=0.4, bioactivity_strength=0.55,
+                lifestyle_categories=["immunity"]
+            ),
+            CompoundMetadata(
+                name="calycosin", chembl_id="CHEMBL314973",
+                research_level=0.55, drug_interaction_risk=0.35, bioactivity_strength=0.5,
+                lifestyle_categories=["cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="cycloastragenol",
+                research_level=0.5, drug_interaction_risk=0.4, bioactivity_strength=0.55,
+                lifestyle_categories=["immunity"]
+            ),
         ],
         traditional_uses=["Immune support", "Energy", "Longevity"],
         parts_used=["Root"]
@@ -499,10 +1197,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Frankincense", "Indian Frankincense"],
         family="Burseraceae",
         compounds=[
-            {"name": "boswellic acid", "chembl_id": "CHEMBL375562"},
-            {"name": "acetyl-11-keto-beta-boswellic acid"},
-            {"name": "alpha-boswellic acid"},
-            {"name": "beta-boswellic acid"},
+            CompoundMetadata(
+                name="boswellic acid", chembl_id="CHEMBL375562",
+                research_level=0.8, drug_interaction_risk=0.45, bioactivity_strength=0.75,
+                lifestyle_categories=["inflammation", "pain"]
+            ),
+            CompoundMetadata(
+                name="acetyl-11-keto-beta-boswellic acid",
+                research_level=0.7, drug_interaction_risk=0.4, bioactivity_strength=0.7,
+                lifestyle_categories=["inflammation", "pain"]
+            ),
+            CompoundMetadata(
+                name="alpha-boswellic acid",
+                research_level=0.55, drug_interaction_risk=0.35, bioactivity_strength=0.55,
+                lifestyle_categories=["inflammation"]
+            ),
+            CompoundMetadata(
+                name="beta-boswellic acid",
+                research_level=0.55, drug_interaction_risk=0.35, bioactivity_strength=0.55,
+                lifestyle_categories=["inflammation"]
+            ),
         ],
         traditional_uses=["Anti-inflammatory", "Joint health", "Respiratory support"],
         parts_used=["Resin"]
@@ -513,26 +1227,24 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Guggul", "Indian Bdellium"],
         family="Burseraceae",
         compounds=[
-            {"name": "guggulsterone", "chembl_id": "CHEMBL287547"},
-            {"name": "guggulipid"},
-            {"name": "myrrhanol A"},
+            CompoundMetadata(
+                name="guggulsterone", chembl_id="CHEMBL287547",
+                research_level=0.7, drug_interaction_risk=0.6, bioactivity_strength=0.7,
+                lifestyle_categories=["metabolism", "cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="guggulipid",
+                research_level=0.55, drug_interaction_risk=0.5, bioactivity_strength=0.55,
+                lifestyle_categories=["metabolism"]
+            ),
+            CompoundMetadata(
+                name="myrrhanol A",
+                research_level=0.4, drug_interaction_risk=0.35, bioactivity_strength=0.4,
+                lifestyle_categories=["inflammation"]
+            ),
         ],
         traditional_uses=["Cholesterol support", "Weight management", "Anti-inflammatory"],
         parts_used=["Resin"]
-    ),
-
-    "piper nigrum": PlantCompoundInfo(
-        scientific_name="Piper nigrum",
-        common_names=["Black Pepper"],
-        family="Piperaceae",
-        compounds=[
-            {"name": "piperine", "chembl_id": "CHEMBL479"},
-            {"name": "chavicine"},
-            {"name": "piperidine"},
-            {"name": "piperonal"},
-        ],
-        traditional_uses=["Digestive aid", "Bioavailability enhancer", "Metabolism"],
-        parts_used=["Fruit"]
     ),
 
     "piper longum": PlantCompoundInfo(
@@ -540,9 +1252,21 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Long Pepper", "Pippali"],
         family="Piperaceae",
         compounds=[
-            {"name": "piperine", "chembl_id": "CHEMBL479"},
-            {"name": "piperlongumine", "chembl_id": "CHEMBL102758"},
-            {"name": "pipernonaline"},
+            CompoundMetadata(
+                name="piperine", chembl_id="CHEMBL479",
+                research_level=0.85, drug_interaction_risk=0.8, bioactivity_strength=0.75,
+                lifestyle_categories=["metabolism", "digestion"]
+            ),
+            CompoundMetadata(
+                name="piperlongumine", chembl_id="CHEMBL102758",
+                research_level=0.6, drug_interaction_risk=0.5, bioactivity_strength=0.6,
+                lifestyle_categories=["inflammation"]
+            ),
+            CompoundMetadata(
+                name="pipernonaline",
+                research_level=0.35, drug_interaction_risk=0.35, bioactivity_strength=0.35,
+                lifestyle_categories=["digestion"]
+            ),
         ],
         traditional_uses=["Digestive aid", "Respiratory support", "Metabolism"],
         parts_used=["Fruit"]
@@ -553,10 +1277,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Ceylon Cinnamon", "True Cinnamon"],
         family="Lauraceae",
         compounds=[
-            {"name": "cinnamaldehyde", "chembl_id": "CHEMBL1478"},
-            {"name": "eugenol", "chembl_id": "CHEMBL486"},
-            {"name": "coumarin", "chembl_id": "CHEMBL12230"},
-            {"name": "cinnamic acid", "chembl_id": "CHEMBL219"},
+            CompoundMetadata(
+                name="cinnamaldehyde", chembl_id="CHEMBL1478",
+                research_level=0.8, drug_interaction_risk=0.5, bioactivity_strength=0.7,
+                lifestyle_categories=["metabolism", "immunity"]
+            ),
+            CompoundMetadata(
+                name="eugenol", chembl_id="CHEMBL486",
+                research_level=0.75, drug_interaction_risk=0.5, bioactivity_strength=0.65,
+                lifestyle_categories=["pain", "inflammation"]
+            ),
+            CompoundMetadata(
+                name="coumarin", chembl_id="CHEMBL12230",
+                research_level=0.7, drug_interaction_risk=0.65, bioactivity_strength=0.55,
+                lifestyle_categories=["cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="cinnamic acid", chembl_id="CHEMBL219",
+                research_level=0.6, drug_interaction_risk=0.3, bioactivity_strength=0.5,
+                lifestyle_categories=["metabolism"]
+            ),
         ],
         traditional_uses=["Blood sugar support", "Digestive aid", "Antimicrobial"],
         parts_used=["Bark"]
@@ -567,10 +1307,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Clove"],
         family="Myrtaceae",
         compounds=[
-            {"name": "eugenol", "chembl_id": "CHEMBL486"},
-            {"name": "eugenyl acetate"},
-            {"name": "beta-caryophyllene", "chembl_id": "CHEMBL485565"},
-            {"name": "acetyl eugenol"},
+            CompoundMetadata(
+                name="eugenol", chembl_id="CHEMBL486",
+                research_level=0.85, drug_interaction_risk=0.55, bioactivity_strength=0.75,
+                lifestyle_categories=["pain", "immunity"]
+            ),
+            CompoundMetadata(
+                name="beta-caryophyllene", chembl_id="CHEMBL485565",
+                research_level=0.65, drug_interaction_risk=0.35, bioactivity_strength=0.6,
+                lifestyle_categories=["pain", "inflammation"]
+            ),
+            CompoundMetadata(
+                name="eugenyl acetate",
+                research_level=0.45, drug_interaction_risk=0.35, bioactivity_strength=0.45,
+                lifestyle_categories=["pain"]
+            ),
+            CompoundMetadata(
+                name="acetyl eugenol",
+                research_level=0.4, drug_interaction_risk=0.35, bioactivity_strength=0.4,
+                lifestyle_categories=["pain"]
+            ),
         ],
         traditional_uses=["Pain relief", "Dental health", "Antimicrobial"],
         parts_used=["Flower buds"]
@@ -581,10 +1337,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Cardamom", "Green Cardamom"],
         family="Zingiberaceae",
         compounds=[
-            {"name": "1,8-cineole", "chembl_id": "CHEMBL395848"},
-            {"name": "alpha-terpinyl acetate"},
-            {"name": "linalool", "chembl_id": "CHEMBL15768"},
-            {"name": "limonene", "chembl_id": "CHEMBL461343"},
+            CompoundMetadata(
+                name="1,8-cineole", chembl_id="CHEMBL395848",
+                research_level=0.7, drug_interaction_risk=0.35, bioactivity_strength=0.6,
+                lifestyle_categories=["digestion"]
+            ),
+            CompoundMetadata(
+                name="linalool", chembl_id="CHEMBL15768",
+                research_level=0.8, drug_interaction_risk=0.3, bioactivity_strength=0.7,
+                lifestyle_categories=["mood", "sleep"]
+            ),
+            CompoundMetadata(
+                name="limonene", chembl_id="CHEMBL461343",
+                research_level=0.65, drug_interaction_risk=0.3, bioactivity_strength=0.5,
+                lifestyle_categories=["mood", "digestion"]
+            ),
+            CompoundMetadata(
+                name="alpha-terpinyl acetate",
+                research_level=0.4, drug_interaction_risk=0.25, bioactivity_strength=0.4,
+                lifestyle_categories=["digestion"]
+            ),
         ],
         traditional_uses=["Digestive aid", "Breath freshener", "Respiratory support"],
         parts_used=["Seeds"]
@@ -595,27 +1367,29 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Fennel"],
         family="Apiaceae",
         compounds=[
-            {"name": "anethole", "chembl_id": "CHEMBL30547"},
-            {"name": "fenchone"},
-            {"name": "estragole"},
-            {"name": "limonene", "chembl_id": "CHEMBL461343"},
+            CompoundMetadata(
+                name="anethole", chembl_id="CHEMBL30547",
+                research_level=0.7, drug_interaction_risk=0.45, bioactivity_strength=0.6,
+                lifestyle_categories=["digestion"]
+            ),
+            CompoundMetadata(
+                name="limonene", chembl_id="CHEMBL461343",
+                research_level=0.65, drug_interaction_risk=0.3, bioactivity_strength=0.5,
+                lifestyle_categories=["digestion"]
+            ),
+            CompoundMetadata(
+                name="fenchone",
+                research_level=0.5, drug_interaction_risk=0.35, bioactivity_strength=0.45,
+                lifestyle_categories=["digestion"]
+            ),
+            CompoundMetadata(
+                name="estragole",
+                research_level=0.45, drug_interaction_risk=0.5, bioactivity_strength=0.45,
+                lifestyle_categories=["digestion"]
+            ),
         ],
         traditional_uses=["Digestive aid", "Lactation support", "Respiratory support"],
         parts_used=["Seeds", "Leaves"]
-    ),
-
-    "allium sativum": PlantCompoundInfo(
-        scientific_name="Allium sativum",
-        common_names=["Garlic"],
-        family="Amaryllidaceae",
-        compounds=[
-            {"name": "allicin", "chembl_id": "CHEMBL87341"},
-            {"name": "alliin"},
-            {"name": "ajoene", "chembl_id": "CHEMBL429336"},
-            {"name": "diallyl disulfide"},
-        ],
-        traditional_uses=["Cardiovascular health", "Immune support", "Antimicrobial"],
-        parts_used=["Bulb"]
     ),
 
     "allium cepa": PlantCompoundInfo(
@@ -623,10 +1397,26 @@ PLANT_COMPOUNDS_DB: Dict[str, PlantCompoundInfo] = {
         common_names=["Onion"],
         family="Amaryllidaceae",
         compounds=[
-            {"name": "quercetin", "chembl_id": "CHEMBL159"},
-            {"name": "allyl propyl disulfide"},
-            {"name": "dipropyl disulfide"},
-            {"name": "thiosulfinates"},
+            CompoundMetadata(
+                name="quercetin", chembl_id="CHEMBL159",
+                research_level=0.8, drug_interaction_risk=0.4, bioactivity_strength=0.6,
+                lifestyle_categories=["inflammation", "immunity"]
+            ),
+            CompoundMetadata(
+                name="allyl propyl disulfide",
+                research_level=0.5, drug_interaction_risk=0.45, bioactivity_strength=0.5,
+                lifestyle_categories=["cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="dipropyl disulfide",
+                research_level=0.45, drug_interaction_risk=0.4, bioactivity_strength=0.45,
+                lifestyle_categories=["cardiovascular"]
+            ),
+            CompoundMetadata(
+                name="thiosulfinates",
+                research_level=0.5, drug_interaction_risk=0.4, bioactivity_strength=0.5,
+                lifestyle_categories=["immunity"]
+            ),
         ],
         traditional_uses=["Cardiovascular health", "Immune support", "Anti-inflammatory"],
         parts_used=["Bulb"]
@@ -706,7 +1496,7 @@ def get_all_compound_names() -> List[str]:
     compounds = set()
     for plant_info in PLANT_COMPOUNDS_DB.values():
         for compound in plant_info.compounds:
-            compounds.add(compound["name"])
+            compounds.add(compound.name)
     return sorted(list(compounds))
 
 
@@ -725,8 +1515,71 @@ def get_plants_by_compound(compound_name: str) -> List[PlantCompoundInfo]:
 
     for plant_info in PLANT_COMPOUNDS_DB.values():
         for compound in plant_info.compounds:
-            if compound_lower in compound["name"].lower():
+            if compound_lower in compound.name.lower():
                 results.append(plant_info)
                 break
 
     return results
+
+
+def get_high_interaction_compounds(
+    plant_info: PlantCompoundInfo,
+    threshold: float = 0.6
+) -> List[CompoundMetadata]:
+    """
+    Get compounds with high drug interaction risk.
+
+    Args:
+        plant_info: Plant information
+        threshold: Minimum interaction risk score (0-1)
+
+    Returns:
+        List of compounds with high interaction risk, sorted by risk
+    """
+    high_risk = [
+        c for c in plant_info.compounds
+        if c.drug_interaction_risk >= threshold
+    ]
+    return sorted(high_risk, key=lambda x: x.drug_interaction_risk, reverse=True)
+
+
+def get_compounds_by_lifestyle_category(
+    plant_info: PlantCompoundInfo,
+    category: str
+) -> List[CompoundMetadata]:
+    """
+    Get compounds that affect a specific lifestyle category.
+
+    Args:
+        plant_info: Plant information
+        category: Lifestyle category (e.g., 'sleep', 'energy', 'mood')
+
+    Returns:
+        List of compounds affecting that category, sorted by priority
+    """
+    matching = [
+        c for c in plant_info.compounds
+        if category.lower() in [cat.lower() for cat in c.lifestyle_categories]
+    ]
+    return sorted(matching, key=calculate_compound_priority, reverse=True)
+
+
+def compound_to_dict(compound: CompoundMetadata) -> Dict[str, any]:
+    """
+    Convert CompoundMetadata to dictionary for API responses.
+
+    Args:
+        compound: CompoundMetadata object
+
+    Returns:
+        Dictionary representation
+    """
+    return {
+        "name": compound.name,
+        "chembl_id": compound.chembl_id,
+        "research_level": compound.research_level,
+        "drug_interaction_risk": compound.drug_interaction_risk,
+        "bioactivity_strength": compound.bioactivity_strength,
+        "lifestyle_categories": compound.lifestyle_categories,
+        "priority_score": calculate_compound_priority(compound)
+    }

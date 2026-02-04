@@ -1,6 +1,16 @@
 """Plant identification service - orchestrates image to pathway analysis
 
 Flow: Image → PlantNet → Species → Plant Compounds DB → ChEMBL Analysis
+
+Compound selection is based on confidence scoring:
+- Research level (how well-studied the compound is)
+- Drug interaction potential (important for safety)
+- Bioactivity strength (biological effect on body)
+- Lifestyle relevance (sleep, energy, mood, etc.)
+
+External database fallback:
+- Dr. Duke's Phytochemical Database (USDA)
+- PhytoHub (dietary phytochemicals)
 """
 
 import logging
@@ -8,10 +18,17 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
 from app.clients.plantnet import PlantNetClient
+from app.clients.dr_duke import dr_duke_client
+from app.clients.phytohub import phytohub_client
 from app.data.plant_compounds import (
     get_plant_compounds,
     search_plant_fuzzy,
-    PlantCompoundInfo
+    get_prioritized_compounds,
+    get_high_interaction_compounds,
+    calculate_compound_priority,
+    compound_to_dict,
+    PlantCompoundInfo,
+    CompoundMetadata
 )
 from app.services.analysis import AnalysisService
 from app.models.schemas import IngredientInput, BodyImpactReport
@@ -52,13 +69,151 @@ class PlantIdentificationService:
     Pipeline:
     1. Send image to PlantNet API for species identification
     2. Look up species in plant compounds database
-    3. For each compound, run ChEMBL pathway analysis
-    4. Aggregate and return results
+    3. If not found, try external databases (Dr. Duke's, PhytoHub)
+    4. For each compound, run ChEMBL pathway analysis
+    5. Aggregate and return results
     """
 
     def __init__(self):
         self.plantnet = PlantNetClient()
         self.analysis_service = AnalysisService()
+
+    def _fetch_compounds_from_external_dbs(
+        self,
+        scientific_name: str,
+        common_names: List[str],
+        max_compounds: int = 10
+    ) -> List[CompoundMetadata]:
+        """
+        Fetch compounds from external databases when not in local DB.
+
+        Tries Dr. Duke's (by scientific name) and PhytoHub (by common name).
+
+        Args:
+            scientific_name: Plant scientific name
+            common_names: Plant common names
+            max_compounds: Maximum compounds to return
+
+        Returns:
+            List of CompoundMetadata from external sources
+        """
+        compounds = []
+        seen_names = set()
+
+        # Try Dr. Duke's Phytochemical Database (uses scientific name)
+        try:
+            logger.info(f"Searching Dr. Duke's database for: {scientific_name}")
+            duke_result = dr_duke_client.get_plant_compounds_for_species(scientific_name)
+
+            if duke_result.get("found"):
+                for comp in duke_result.get("compounds", [])[:max_compounds]:
+                    name = comp.get("name", "").lower()
+                    if name and name not in seen_names:
+                        seen_names.add(name)
+                        # Create CompoundMetadata with default scores
+                        # External DB compounds get moderate default scores
+                        compounds.append(CompoundMetadata(
+                            name=comp.get("name"),
+                            research_level=0.4,  # Moderate - found in scientific DB
+                            drug_interaction_risk=0.3,  # Unknown - be cautious
+                            bioactivity_strength=0.5,  # Moderate default
+                            lifestyle_categories=self._activities_to_categories(
+                                comp.get("activities", [])
+                            )
+                        ))
+                logger.info(f"Dr. Duke's found {len(duke_result.get('compounds', []))} compounds")
+        except Exception as e:
+            logger.error(f"Error fetching from Dr. Duke's: {e}")
+
+        # Try PhytoHub (uses common names - food/plant names)
+        for common_name in common_names[:2]:  # Try first 2 common names
+            if len(compounds) >= max_compounds:
+                break
+
+            try:
+                logger.info(f"Searching PhytoHub for: {common_name}")
+                phytohub_result = phytohub_client.get_plant_compounds_for_species(common_name)
+
+                if phytohub_result.get("found"):
+                    for comp in phytohub_result.get("compounds", []):
+                        name = comp.get("name", "").lower()
+                        if name and name not in seen_names:
+                            seen_names.add(name)
+                            compounds.append(CompoundMetadata(
+                                name=comp.get("name"),
+                                research_level=0.5,  # Moderate-good - dietary database
+                                drug_interaction_risk=0.2,  # Dietary compounds usually lower risk
+                                bioactivity_strength=0.4,  # Moderate default
+                                lifestyle_categories=self._compound_class_to_categories(
+                                    comp.get("compound_class")
+                                )
+                            ))
+                            if len(compounds) >= max_compounds:
+                                break
+                    logger.info(f"PhytoHub found {phytohub_result.get('compound_count', 0)} compounds")
+            except Exception as e:
+                logger.error(f"Error fetching from PhytoHub for {common_name}: {e}")
+
+        return compounds[:max_compounds]
+
+    def _activities_to_categories(self, activities: List[str]) -> List[str]:
+        """Convert Dr. Duke's biological activities to lifestyle categories."""
+        categories = set()
+
+        activity_map = {
+            "sedative": "sleep",
+            "hypnotic": "sleep",
+            "anxiolytic": "mood",
+            "antidepressant": "mood",
+            "stimulant": "energy",
+            "antifatigue": "energy",
+            "nootropic": "cognition",
+            "memory": "cognition",
+            "anti-inflammatory": "inflammation",
+            "analgesic": "pain",
+            "antinociceptive": "pain",
+            "digestive": "digestion",
+            "carminative": "digestion",
+            "immunostimulant": "immunity",
+            "antimicrobial": "immunity",
+            "cardiotonic": "cardiovascular",
+            "hypotensive": "cardiovascular",
+            "dermal": "skin",
+            "antiobesity": "metabolism",
+            "hypoglycemic": "metabolism",
+        }
+
+        for activity in activities:
+            activity_lower = activity.lower()
+            for keyword, category in activity_map.items():
+                if keyword in activity_lower:
+                    categories.add(category)
+
+        return list(categories)
+
+    def _compound_class_to_categories(self, compound_class: Optional[str]) -> List[str]:
+        """Convert PhytoHub compound class to lifestyle categories."""
+        if not compound_class:
+            return []
+
+        class_map = {
+            "flavonoid": ["inflammation", "cardiovascular"],
+            "polyphenol": ["inflammation"],
+            "terpenoid": ["immunity"],
+            "alkaloid": ["cognition", "mood"],
+            "carotenoid": ["skin", "immunity"],
+            "phenolic": ["inflammation"],
+            "glucosinolate": ["immunity"],
+        }
+
+        categories = set()
+        class_lower = compound_class.lower()
+
+        for class_type, cats in class_map.items():
+            if class_type in class_lower:
+                categories.update(cats)
+
+        return list(categories)
 
     def identify_plant_from_image(
         self,
@@ -176,35 +331,74 @@ class PlantIdentificationService:
                 summary={"error": identification.error}
             )
 
-        # Step 2: Get compounds from database
-        compounds_found = []
+        # Step 2: Get compounds from database using confidence-based prioritization
+        compounds_found: List[CompoundMetadata] = []
+        external_db_used = False
+
         if identification.plant_info:
-            compounds_found = identification.plant_info.compounds[:max_compounds]
-            logger.info(
-                f"Found {len(compounds_found)} compounds for "
-                f"{identification.scientific_name}"
-            )
-        else:
-            logger.warning(
-                f"Plant {identification.scientific_name} not in compounds database"
-            )
-            return PlantAnalysisResult(
-                identification=identification,
-                compounds_found=[],
-                compound_reports=[],
-                aggregate_pathways=[],
-                summary={
-                    "plant_identified": identification.scientific_name,
-                    "confidence": identification.confidence,
-                    "warning": "Plant not found in compounds database. "
-                               "Try searching for specific compounds manually."
-                }
+            # Use priority scoring to select most relevant compounds
+            compounds_found = get_prioritized_compounds(
+                identification.plant_info,
+                max_compounds=max_compounds
             )
 
-        # Step 3: Analyze each compound
+            # Log selection details
+            for compound in compounds_found:
+                priority = calculate_compound_priority(compound)
+                logger.info(
+                    f"Selected compound: {compound.name} "
+                    f"(priority={priority:.3f}, research={compound.research_level:.2f}, "
+                    f"interaction_risk={compound.drug_interaction_risk:.2f}, "
+                    f"bioactivity={compound.bioactivity_strength:.2f})"
+                )
+
+            # Check for high-interaction compounds and log warnings
+            high_risk = get_high_interaction_compounds(identification.plant_info, threshold=0.7)
+            if high_risk:
+                logger.warning(
+                    f"Plant {identification.scientific_name} contains high drug-interaction "
+                    f"compounds: {[c.name for c in high_risk]}"
+                )
+        else:
+            # Plant not in local database - try external databases
+            logger.info(
+                f"Plant {identification.scientific_name} not in local database, "
+                "trying external databases (Dr. Duke's, PhytoHub)..."
+            )
+
+            compounds_found = self._fetch_compounds_from_external_dbs(
+                scientific_name=identification.scientific_name,
+                common_names=identification.common_names,
+                max_compounds=max_compounds
+            )
+
+            if compounds_found:
+                external_db_used = True
+                logger.info(
+                    f"Found {len(compounds_found)} compounds from external databases"
+                )
+            else:
+                logger.warning(
+                    f"Plant {identification.scientific_name} not found in any database"
+                )
+                return PlantAnalysisResult(
+                    identification=identification,
+                    compounds_found=[],
+                    compound_reports=[],
+                    aggregate_pathways=[],
+                    summary={
+                        "plant_identified": identification.scientific_name,
+                        "confidence": identification.confidence,
+                        "warning": "Plant not found in local or external compound databases. "
+                                   "Try searching for specific compounds manually.",
+                        "databases_searched": ["Local", "Dr. Duke's (USDA)", "PhytoHub"]
+                    }
+                )
+
+        # Step 3: Analyze each compound (in priority order)
         compound_reports = []
         for compound in compounds_found:
-            compound_name = compound["name"]
+            compound_name = compound.name
             logger.info(f"Analyzing compound: {compound_name}")
 
             try:
@@ -225,7 +419,8 @@ class PlantIdentificationService:
             identification,
             compounds_found,
             compound_reports,
-            aggregate_pathways
+            aggregate_pathways,
+            external_db_used=external_db_used
         )
 
         return PlantAnalysisResult(
@@ -342,11 +537,12 @@ class PlantIdentificationService:
     def _generate_plant_summary(
         self,
         identification: PlantIdentificationResult,
-        compounds: List[Dict[str, Any]],
+        compounds: List[CompoundMetadata],
         reports: List[BodyImpactReport],
-        aggregate_pathways: List[Dict[str, Any]]
+        aggregate_pathways: List[Dict[str, Any]],
+        external_db_used: bool = False
     ) -> Dict[str, Any]:
-        """Generate summary of plant analysis."""
+        """Generate summary of plant analysis with confidence scoring."""
         # Count total targets across all compounds
         total_targets = sum(len(r.known_targets) for r in reports)
         total_pathways = len(aggregate_pathways)
@@ -359,15 +555,60 @@ class PlantIdentificationService:
         if identification.plant_info:
             traditional_uses = identification.plant_info.traditional_uses
 
+        # Get high-interaction compounds for warning
+        high_interaction_compounds = []
+        drug_interaction_warning = None
+        if identification.plant_info:
+            high_risk = get_high_interaction_compounds(
+                identification.plant_info,
+                threshold=0.6
+            )
+            if high_risk:
+                high_interaction_compounds = [
+                    {
+                        "name": c.name,
+                        "risk_level": c.drug_interaction_risk,
+                        "categories": c.lifestyle_categories
+                    }
+                    for c in high_risk
+                ]
+                drug_interaction_warning = (
+                    f"This plant contains compounds with significant drug interaction potential: "
+                    f"{', '.join(c.name for c in high_risk)}. "
+                    "Consult a healthcare provider before use, especially if taking medications."
+                )
+
+        # Collect all lifestyle categories affected
+        all_categories = set()
+        for compound in compounds:
+            all_categories.update(compound.lifestyle_categories)
+
+        # Calculate average research confidence
+        avg_research = sum(c.research_level for c in compounds) / len(compounds) if compounds else 0
+
+        # Determine data sources
+        if external_db_used:
+            data_sources = ["Dr. Duke's Phytochemical Database (USDA)", "PhytoHub"]
+            source_note = (
+                "Compound data retrieved from external databases. "
+                "Research confidence scores are estimates based on database source."
+            )
+        else:
+            data_sources = ["BioPath Curated Database"]
+            source_note = None
+
         summary = {
             "plant_identified": identification.scientific_name,
             "common_names": identification.common_names,
             "family": identification.family,
             "identification_confidence": round(identification.confidence, 3),
             "compounds_analyzed": len(compounds),
-            "compound_names": [c["name"] for c in compounds],
+            "compound_names": [c.name for c in compounds],
+            "compound_details": [compound_to_dict(c) for c in compounds],
+            "average_research_confidence": round(avg_research, 3),
             "total_targets_found": total_targets,
             "total_pathways_affected": total_pathways,
+            "lifestyle_categories_affected": sorted(list(all_categories)),
             "traditional_uses": traditional_uses,
             "top_pathways": [
                 {
@@ -377,6 +618,10 @@ class PlantIdentificationService:
                 }
                 for p in top_pathways
             ],
+            "high_interaction_compounds": high_interaction_compounds,
+            "drug_interaction_warning": drug_interaction_warning,
+            "data_sources": data_sources,
+            "source_note": source_note,
             "disclaimer": (
                 "This analysis identifies biological pathways potentially affected by "
                 "compounds found in this plant. This is NOT medical advice. "

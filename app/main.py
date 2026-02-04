@@ -25,6 +25,8 @@ from app.data.plant_compounds import (
     get_plant_compounds,
     search_plant_fuzzy,
     get_plants_by_compound,
+    get_prioritized_compounds,
+    compound_to_dict,
     PLANT_COMPOUNDS_DB
 )
 
@@ -260,7 +262,7 @@ async def list_jobs():
 class PlantIdentifyRequest(BaseModel):
     """Request for plant identification from base64 image"""
     image_base64: str
-    organs: Optional[List[str]] = None  # leaf, flower, fruit, bark
+    organs: Optional[List[str]] = None  # leaf, flower, fruit, bark, root
 
 
 class PlantAnalyzeRequest(BaseModel):
@@ -309,7 +311,9 @@ async def identify_plant(request: PlantIdentifyRequest):
         }
 
         if result.plant_info:
-            response["compounds"] = result.plant_info.compounds
+            # Convert compounds to dicts and sort by priority
+            prioritized = get_prioritized_compounds(result.plant_info, max_compounds=10)
+            response["compounds"] = [compound_to_dict(c) for c in prioritized]
             response["traditional_uses"] = result.plant_info.traditional_uses
             response["parts_used"] = result.plant_info.parts_used
 
@@ -333,7 +337,7 @@ async def identify_plant_upload(
 
     Args:
         file: Image file (JPEG, PNG)
-        organs: Comma-separated list of organs visible (leaf,flower,fruit,bark)
+        organs: Comma-separated list of organs visible (leaf,flower,fruit,bark,root)
 
     Returns:
         Plant identification results
@@ -378,7 +382,9 @@ async def identify_plant_upload(
         }
 
         if result.plant_info:
-            response["compounds"] = result.plant_info.compounds
+            # Convert compounds to dicts and sort by priority
+            prioritized = get_prioritized_compounds(result.plant_info, max_compounds=10)
+            response["compounds"] = [compound_to_dict(c) for c in prioritized]
             response["traditional_uses"] = result.plant_info.traditional_uses
             response["parts_used"] = result.plant_info.parts_used
 
@@ -421,7 +427,7 @@ async def analyze_plant(request: PlantAnalyzeRequest):
             request.enable_predictions
         )
 
-        # Format response
+        # Format response with serialized compounds
         response = {
             "identification": {
                 "success": result.identification.success,
@@ -431,7 +437,7 @@ async def analyze_plant(request: PlantAnalyzeRequest):
                 "confidence": result.identification.confidence,
                 "error": result.identification.error
             },
-            "compounds_found": result.compounds_found,
+            "compounds_found": [compound_to_dict(c) for c in result.compounds_found],
             "compound_analyses": [
                 {
                     "compound_name": report.ingredient_name,
@@ -507,7 +513,7 @@ async def analyze_plant_upload(
             enable_predictions
         )
 
-        # Format response (same as analyze_plant)
+        # Format response with serialized compounds (same as analyze_plant)
         response = {
             "identification": {
                 "success": result.identification.success,
@@ -517,7 +523,7 @@ async def analyze_plant_upload(
                 "confidence": result.identification.confidence,
                 "error": result.identification.error
             },
-            "compounds_found": result.compounds_found,
+            "compounds_found": [compound_to_dict(c) for c in result.compounds_found],
             "compound_analyses": [
                 {
                     "compound_name": report.ingredient_name,
@@ -582,7 +588,7 @@ async def search_plants(q: str):
         q: Search query
 
     Returns:
-        Matching plants
+        Matching plants with compounds sorted by priority
     """
     results = search_plant_fuzzy(q)
 
@@ -594,7 +600,7 @@ async def search_plants(q: str):
                 "scientific_name": p.scientific_name,
                 "common_names": p.common_names,
                 "family": p.family,
-                "compounds": p.compounds,
+                "compounds": [compound_to_dict(c) for c in get_prioritized_compounds(p, max_compounds=10)],
                 "traditional_uses": p.traditional_uses
             }
             for p in results
@@ -611,7 +617,7 @@ async def get_plant_info(scientific_name: str):
         scientific_name: Scientific name of the plant
 
     Returns:
-        Plant details including compounds and traditional uses
+        Plant details including compounds sorted by priority and traditional uses
     """
     plant = get_plant_compounds(scientific_name)
 
@@ -626,11 +632,14 @@ async def get_plant_info(scientific_name: str):
                 detail=f"Plant '{scientific_name}' not found in database"
             )
 
+    # Get prioritized compounds with full details
+    prioritized = get_prioritized_compounds(plant, max_compounds=20)
+
     return {
         "scientific_name": plant.scientific_name,
         "common_names": plant.common_names,
         "family": plant.family,
-        "compounds": plant.compounds,
+        "compounds": [compound_to_dict(c) for c in prioritized],
         "traditional_uses": plant.traditional_uses,
         "parts_used": plant.parts_used
     }

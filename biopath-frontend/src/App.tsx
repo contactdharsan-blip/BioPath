@@ -17,6 +17,7 @@ import { useAnalysisSync } from './hooks/useAnalysisSync';
 import { useTheme } from './hooks/useTheme';
 import type { IngredientInput, BodyImpactReport, PlantAnalysisResponse } from './api/types';
 import clsx from 'clsx';
+import './apple-theme.css';
 import './App.css';
 
 type TabId = 'overview' | '3d-structure' | 'targets' | 'pathways' | 'side-effects' | 'drug-interactions' | 'my-medications';
@@ -154,74 +155,74 @@ function App() {
   ];
 
   return (
-    <div className="min-h-screen gradient-bg transition-colors duration-200">
+    <div className="min-h-screen bg-primary text-primary transition-colors duration-200">
       {(isPending || plantLoading) && <LoadingOverlay compoundName={submittedIngredient || 'plant'} />}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Header */}
-        <header className="mb-12 text-center relative">
+        <header className="mb-16 text-center relative">
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="absolute right-0 top-0 p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700 transition-all shadow-lg glow-card"
+            className="absolute right-0 top-0 p-3 rounded-full hover:bg-secondary transition-colors duration-200"
             aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
           >
             {theme === 'light' ? (
-              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              <svg className="w-6 h-6 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
             ) : (
-              <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              <svg className="w-6 h-6 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
             )}
           </button>
 
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white float-animation">BioPath</h1>
-          <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
-            Chemical-Target-Pathway Analysis Platform
+          <h1 className="text-5xl font-700 tracking-tight mb-3">BioPath</h1>
+          <p className="text-xl text-text-secondary">
+            Discover how compounds interact with your medications
           </p>
         </header>
 
         {/* Mode Selector - only show when no results */}
         {!result && !plantResult && (
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+          <div className="flex justify-center mb-16">
+            <div className="flex gap-3 bg-secondary rounded-full p-1">
               <button
                 onClick={() => handleModeChange('compound')}
                 className={clsx(
-                  'px-6 py-2 rounded-lg text-sm font-medium transition-all',
+                  'px-8 py-3 rounded-full text-sm font-500 transition-all duration-200',
                   analysisMode === 'compound'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-primary text-white shadow-md'
+                    : 'text-text-secondary hover:text-text-primary'
                 )}
               >
                 <span className="mr-2">💊</span>
-                Compound Search
+                Compound
               </button>
               <button
                 onClick={() => handleModeChange('plant')}
                 className={clsx(
-                  'px-6 py-2 rounded-lg text-sm font-medium transition-all',
+                  'px-8 py-3 rounded-full text-sm font-500 transition-all duration-200',
                   analysisMode === 'plant'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-primary text-white shadow-md'
+                    : 'text-text-secondary hover:text-text-primary'
                 )}
               >
                 <span className="mr-2">🌿</span>
-                Plant Photo
+                Plant
               </button>
               <button
                 onClick={() => handleModeChange('medication-tracker')}
                 className={clsx(
-                  'px-6 py-2 rounded-lg text-sm font-medium transition-all',
+                  'px-8 py-3 rounded-full text-sm font-500 transition-all duration-200',
                   analysisMode === 'medication-tracker'
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-primary text-white shadow-md'
+                    : 'text-text-secondary hover:text-text-primary'
                 )}
               >
                 <span className="mr-2">🩺</span>
-                Medication Tracker
+                Medications
               </button>
             </div>
           </div>
@@ -360,9 +361,9 @@ function App() {
 
               {/* Disclaimer */}
               {result.final_summary.disclaimer && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-sm text-gray-700 dark:text-gray-300">
-                  <p className="font-medium text-yellow-900 dark:text-yellow-400 mb-1">Disclaimer</p>
-                  <p>{result.final_summary.disclaimer}</p>
+                <div className="bg-secondary border border-divider rounded-lg p-6 text-sm">
+                  <p className="font-600 text-text-primary mb-2">Disclaimer</p>
+                  <p className="text-text-secondary">{result.final_summary.disclaimer}</p>
                 </div>
               )}
             </div>
@@ -370,24 +371,22 @@ function App() {
         </main>
 
         {/* Footer */}
-        <footer className="mt-16 text-center text-sm text-gray-500 dark:text-gray-400">
-          <p>
-            Created by <span className="font-medium text-gray-700 dark:text-gray-300">Dharsan Kesavan</span>
+        <footer className="mt-24 pt-12 border-t border-divider text-center text-sm text-text-secondary">
+          <p className="mb-3">
+            Created by <span className="font-500 text-text-primary">Dharsan Kesavan</span>
           </p>
-          <p className="mt-1">
+          <p className="text-text-tertiary text-xs mb-4">
             Powered by PubChem, ChEMBL, Reactome, Open Targets, and PlantNet
           </p>
-          <p className="mt-1">
+          <p className="text-text-tertiary text-xs mb-4">
             For research purposes only - Not medical advice
           </p>
-          <p className="mt-2">
-            <button
-              onClick={() => setShowLicenses(true)}
-              className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 underline"
-            >
-              Licenses & Attributions
-            </button>
-          </p>
+          <button
+            onClick={() => setShowLicenses(true)}
+            className="text-info hover:opacity-70 transition-opacity text-xs"
+          >
+            Licenses & Attributions
+          </button>
         </footer>
       </div>
 

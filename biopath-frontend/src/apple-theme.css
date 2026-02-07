@@ -6,6 +6,8 @@
   --color-primary-dark: #0047cc;
   --color-secondary: #d6e6ff;
   --color-tertiary: #ffffff;
+  --color-accent-light-blue: #d6e6ff;
+  --color-accent-blue: #e8f0ff;
 
   /* Text Colors */
   --color-text-primary: #161616;
@@ -14,8 +16,8 @@
 
   /* Background Colors */
   --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f8f9fb;
-  --color-bg-tertiary: #f0f3f8;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-tertiary: #f3f6fb;
   --color-card-bg: #161616;
   --color-card-text: #ffffff;
 
@@ -48,7 +50,7 @@
   --font-size-3xl: 2rem;
   --font-size-4xl: 2.5rem;
 
-  /* Spacing - Generous Aura-style spacing */
+  /* Spacing - Extra generous Aura-style spacing */
   --spacing-1: 0.25rem;
   --spacing-2: 0.5rem;
   --spacing-3: 0.75rem;
@@ -57,6 +59,8 @@
   --spacing-8: 2rem;
   --spacing-12: 3rem;
   --spacing-16: 4rem;
+  --spacing-20: 5rem;
+  --spacing-24: 6rem;
 
   /* Border Radius */
   --radius-sm: 0.5rem;
@@ -110,16 +114,16 @@ h1 {
   font-size: var(--font-size-4xl);
   font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 1.15;
   margin: 0;
   color: var(--color-text-primary);
 }
 
 h2 {
   font-size: var(--font-size-3xl);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
   margin: 0;
   color: var(--color-text-primary);
 }
@@ -128,7 +132,7 @@ h3 {
   font-size: var(--font-size-2xl);
   font-weight: 600;
   letter-spacing: -0.01em;
-  line-height: 1.3;
+  line-height: 1.35;
   margin: 0;
   color: var(--color-text-primary);
 }
@@ -136,6 +140,7 @@ h3 {
 h4 {
   font-size: var(--font-size-lg);
   font-weight: 600;
+  letter-spacing: 0.3px;
   line-height: 1.4;
   margin: 0;
   color: var(--color-text-primary);
@@ -143,7 +148,7 @@ h4 {
 
 p {
   font-size: var(--font-size-base);
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--color-text-secondary);
   margin: 0;
 }
@@ -163,16 +168,16 @@ a:active {
   opacity: 0.6;
 }
 
-/* Buttons - Sleek Modern Style */
+/* Buttons - Aura Interactive Style */
 .btn {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
   font-weight: 600;
-  padding: 0.85rem 1.75rem;
+  padding: 1rem 2rem;
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -184,104 +189,115 @@ a:active {
 }
 
 .btn:active {
-  transform: scale(0.98);
+  transform: translate(2px, 2px);
 }
 
 .btn-primary {
   background: linear-gradient(135deg, var(--color-primary), #254fd6);
   color: white;
-  box-shadow: 0 4px 15px rgba(51, 102, 255, 0.3);
+  box-shadow: 0 6px 20px rgba(51, 102, 255, 0.35);
   border: none;
 }
 
 .btn-primary:hover {
   background: linear-gradient(135deg, var(--color-primary-dark), #1a3bb8);
-  box-shadow: 0 8px 24px rgba(51, 102, 255, 0.4);
-  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(51, 102, 255, 0.45);
+  transform: translate(-4px, -4px);
 }
 
 .btn-primary:active {
   background: linear-gradient(135deg, #0038b3, #002a88);
-  transform: scale(0.98);
-  box-shadow: 0 2px 8px rgba(51, 102, 255, 0.2);
+  transform: translate(2px, 2px);
+  box-shadow: 0 4px 12px rgba(51, 102, 255, 0.25);
 }
 
 .btn-secondary {
   background-color: var(--color-bg-secondary);
   color: var(--color-text-primary);
-  border: 1.5px solid var(--color-divider);
+  border: 2px solid var(--color-divider);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .btn-secondary:hover {
-  background-color: var(--color-bg-tertiary);
+  background-color: var(--color-accent-blue);
   border-color: var(--color-primary);
-  box-shadow: 0 6px 16px rgba(51, 102, 255, 0.15);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(51, 102, 255, 0.2);
+  transform: translate(-4px, -4px);
 }
 
 .btn-secondary:active {
   background-color: var(--color-bg-tertiary);
-  transform: scale(0.98);
+  transform: translate(2px, 2px);
 }
 
 /* Cards */
 .card {
   background-color: var(--color-card-bg);
   color: var(--color-card-text);
-  border: 1.5px solid var(--color-card-border);
+  border: none;
   border-radius: var(--radius-xl);
-  padding: var(--spacing-8);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: all var(--transition-base);
+  padding: 2.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
   backdrop-filter: blur(0px);
+  position: relative;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-xl);
+  pointer-events: none;
 }
 
 .card:hover {
-  box-shadow: 0 8px 24px rgba(51, 102, 255, 0.12);
-  border-color: var(--color-primary);
-  transform: translateY(-3px);
-  backdrop-filter: blur(4px);
+  box-shadow: 0 12px 36px rgba(51, 102, 255, 0.15);
+  transform: translateY(-4px);
 }
 
 /* Input Fields */
 input, textarea, select {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
-  padding: 0.85rem 1.1rem;
-  border: 1.5px solid var(--color-divider);
+  padding: 1rem 1.25rem;
+  border: 2px solid var(--color-divider);
   border-radius: var(--radius-md);
   background-color: var(--color-bg-secondary);
   color: var(--color-text-primary);
-  transition: all var(--transition-fast);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 input:hover, textarea:hover, select:hover {
   border-color: var(--color-primary);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(51, 102, 255, 0.1);
 }
 
 .card input, .card textarea, .card select {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.06);
   color: var(--color-card-text);
-  border-color: var(--color-card-border);
+  border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .card input:hover, .card textarea:hover, .card select:hover {
   border-color: var(--color-primary);
-  box-shadow: 0 4px 12px rgba(51, 102, 255, 0.15);
+  box-shadow: 0 6px 16px rgba(51, 102, 255, 0.2);
 }
 
 .card input::placeholder, .card textarea::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(51, 102, 255, 0.08), 0 4px 12px rgba(51, 102, 255, 0.12);
+  box-shadow: 0 0 0 3px rgba(51, 102, 255, 0.1), 0 6px 16px rgba(51, 102, 255, 0.15);
 }
 
 /* Badge Styles */

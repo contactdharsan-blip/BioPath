@@ -17,6 +17,7 @@ class IngredientInput(BaseModel):
     """Input request for ingredient analysis"""
     ingredient_name: str = Field(..., description="Active ingredient name", min_length=1)
     enable_predictions: bool = Field(default=False, description="Enable ML/docking predictions")
+    user_medications: Optional[List[str]] = Field(default=None, description="User's current medications for interaction checking")
 
 
 class CompoundIdentity(BaseModel):
@@ -103,6 +104,18 @@ class PathwayMatch(BaseModel):
     related_pathways: List[str] = Field(default_factory=list)
 
 
+class PersonalizedInteraction(BaseModel):
+    """Drug-compound interaction specific to user's medication"""
+    medication_name: str = Field(..., description="Name of the user's medication")
+    severity: str = Field(..., description="Interaction severity: major, moderate, minor, or none")
+    mechanism: str = Field(..., description="How the interaction occurs")
+    clinical_effect: Optional[str] = Field(None, description="Potential clinical consequences")
+    recommendation: str = Field(..., description="Safety recommendation based on severity")
+    evidence_level: str = Field(..., description="Evidence quality: established, theoretical, or predicted")
+    shared_targets: List[str] = Field(default_factory=list, description="Overlapping drug targets")
+    shared_pathways: List[str] = Field(default_factory=list, description="Overlapping biological pathways")
+
+
 class ProvenanceRecord(BaseModel):
     """Provenance tracking for API calls"""
     service: str  # "PubChem", "ChEMBL", "Reactome"
@@ -139,6 +152,12 @@ class BodyImpactReport(BaseModel):
     pathways: List[PathwayMatch] = Field(
         default_factory=list,
         description="Affected biological pathways with impact scores"
+    )
+
+    # Personalized drug interactions
+    personalized_interactions: List[PersonalizedInteraction] = Field(
+        default_factory=list,
+        description="Interactions with user's medications (if medications provided)"
     )
 
     # Summary

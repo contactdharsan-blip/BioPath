@@ -5,6 +5,7 @@ export type ConfidenceTier = 'A' | 'B' | 'C';
 export interface IngredientInput {
   ingredient_name: string;
   enable_predictions?: boolean;
+  user_medications?: string[];
 }
 
 export interface CompoundIdentity {
@@ -102,6 +103,17 @@ export interface FinalSummary {
   disclaimer: string;
 }
 
+export interface PersonalizedInteraction {
+  medication_name: string;
+  severity: 'major' | 'moderate' | 'minor' | 'none';
+  mechanism: string;
+  clinical_effect?: string;
+  recommendation: string;
+  evidence_level: 'established' | 'theoretical' | 'predicted';
+  shared_targets?: string[];
+  shared_pathways?: string[];
+}
+
 export interface BodyImpactReport {
   ingredient_name: string;
   analysis_timestamp: string;
@@ -114,6 +126,7 @@ export interface BodyImpactReport {
   analysis_version: string;
   predictions_enabled: boolean;
   total_analysis_duration_seconds?: number;
+  personalized_interactions?: PersonalizedInteraction[];
 }
 
 export interface AnalyzeResponse {
@@ -191,6 +204,7 @@ export interface CompoundAnalysis {
     impact_score: number;
     url: string;
   }[];
+  personalized_interactions?: PersonalizedInteraction[];
 }
 
 export interface AggregatePathway {

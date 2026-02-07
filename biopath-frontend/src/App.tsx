@@ -9,6 +9,8 @@ import { PathwaysList } from './components/analysis/PathwaysList';
 import { MoleculeViewer } from './components/analysis/MoleculeViewer';
 import { SideEffectsTab } from './components/analysis/SideEffectsTab';
 import { DrugInteractionsTab } from './components/analysis/DrugInteractionsTab';
+import { PersonalizedInteractionsTab } from './components/analysis/PersonalizedInteractionsTab';
+import { MedicationListManager, type Medication } from './components/medications/MedicationListManager';
 import { LoadingOverlay } from './components/common/LoadingOverlay';
 import { LicensesModal } from './components/common/LicensesModal';
 import { useAnalysisSync } from './hooks/useAnalysisSync';
@@ -17,8 +19,8 @@ import type { IngredientInput, BodyImpactReport, PlantAnalysisResponse } from '.
 import clsx from 'clsx';
 import './App.css';
 
-type TabId = 'overview' | '3d-structure' | 'targets' | 'pathways' | 'side-effects' | 'drug-interactions';
-type AnalysisMode = 'compound' | 'plant';
+type TabId = 'overview' | '3d-structure' | 'targets' | 'pathways' | 'side-effects' | 'drug-interactions' | 'my-medications';
+type AnalysisMode = 'compound' | 'plant' | 'medication-tracker';
 
 interface Tab {
   id: TabId;
@@ -34,16 +36,23 @@ function App() {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [showLicenses, setShowLicenses] = useState(false);
   const [plantLoading, setPlantLoading] = useState(false);
+  const [medications, setMedications] = useState<Medication[]>([]);
   const { theme, toggleTheme } = useTheme();
 
   const { mutate: analyzeCompound, isPending } = useAnalysisSync();
 
   const handleAnalyze = (input: IngredientInput) => {
-    setSubmittedIngredient(input.ingredient_name);
+    // Include user medications if available
+    const enrichedInput: IngredientInput = {
+      ...input,
+      user_medications: medications.length > 0 ? medications.map(m => m.name) : undefined
+    };
+
+    setSubmittedIngredient(enrichedInput.ingredient_name);
     setResult(null);
     setActiveTab('overview');
 
-    analyzeCompound(input, {
+    analyzeCompound(enrichedInput, {
       onSuccess: (data) => {
         setResult(data);
       },
@@ -53,6 +62,7 @@ function App() {
       },
     });
   };
+
 
   const handleNewAnalysis = () => {
     setResult(null);
@@ -132,6 +142,15 @@ function App() {
         </svg>
       ),
     },
+    {
+      id: 'my-medications',
+      label: 'My Medications',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
   ];
 
   return (
@@ -192,6 +211,18 @@ function App() {
                 <span className="mr-2">🌿</span>
                 Plant Photo
               </button>
+              <button
+                onClick={() => handleModeChange('medication-tracker')}
+                className={clsx(
+                  'px-6 py-2 rounded-lg text-sm font-medium transition-all',
+                  analysisMode === 'medication-tracker'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                )}
+              >
+                <span className="mr-2">🩺</span>
+                Medication Tracker
+              </button>
             </div>
           </div>
         )}
@@ -208,12 +239,17 @@ function App() {
             /* Input Forms */
             analysisMode === 'compound' ? (
               <AnalysisForm onSubmit={handleAnalyze} isLoading={isPending} />
-            ) : (
+            ) : analysisMode === 'plant' ? (
               <PlantIdentification
                 onAnalysisComplete={handlePlantAnalysisComplete}
                 onError={handlePlantError}
                 isLoading={plantLoading}
                 setIsLoading={setPlantLoading}
+              />
+            ) : (
+              <MedicationListManager
+                medications={medications}
+                onMedicationsChange={setMedications}
               />
             )
           ) : (
@@ -301,6 +337,13 @@ function App() {
                     targets={result.known_targets}
                     pathways={result.pathways}
                     compoundName={result.ingredient_name}
+                  />
+                )}
+
+                {activeTab === 'my-medications' && (
+                  <PersonalizedInteractionsTab
+                    compoundName={result.ingredient_name}
+                    personalized_interactions={result.personalized_interactions || []}
                   />
                 )}
               </div>

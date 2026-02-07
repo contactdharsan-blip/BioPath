@@ -19,6 +19,7 @@ from app.models.schemas import (
 )
 from app.services.analysis import AnalysisService
 from app.services.plant_identification import plant_identification_service
+from app.services.drug_interaction_service import drug_interaction_service
 from app.tasks.celery_tasks import analyze_ingredient_task, celery_app
 from app.clients.reactome import ReactomeClient
 from app.data.plant_compounds import (
@@ -111,16 +112,28 @@ async def analyze_sync(ingredient_input: IngredientInput):
     Use this for testing or small jobs. For production, use /analyze (async).
 
     Args:
-        ingredient_input: Ingredient name and options
+        ingredient_input: Ingredient name and options (includes optional user_medications)
 
     Returns:
-        BodyImpactReport with complete analysis
+        BodyImpactReport with complete analysis and personalized interactions
     """
     try:
         logger.info(f"Sync analysis request: {ingredient_input.ingredient_name}")
 
         service = AnalysisService()
         report = service.analyze_ingredient(ingredient_input)
+
+        # Check personalized drug interactions if medications provided
+        if ingredient_input.user_medications:
+            logger.info(f"Checking interactions with {len(ingredient_input.user_medications)} medications")
+            personalized_interactions = drug_interaction_service.check_compound_medication_interactions(
+                compound_name=report.ingredient_name,
+                medication_names=ingredient_input.user_medications,
+                targets=report.known_targets,
+                pathways=report.pathways
+            )
+            report.personalized_interactions = personalized_interactions
+            logger.info(f"Found {len(personalized_interactions)} interactions")
 
         return report
 
@@ -271,6 +284,7 @@ class PlantAnalyzeRequest(BaseModel):
     organs: Optional[List[str]] = None
     max_compounds: int = 5
     enable_predictions: bool = False
+    user_medications: Optional[List[str]] = None
 
 
 @app.post("/identify_plant")
@@ -409,13 +423,14 @@ async def analyze_plant(request: PlantAnalyzeRequest):
     1. Sends image to PlantNet API for species identification
     2. Looks up species in plant compounds database
     3. Analyzes each compound through ChEMBL for pathway information
-    4. Returns aggregated results
+    4. Optionally checks personalized drug interactions with user medications
+    5. Returns aggregated results
 
     Args:
-        request: PlantAnalyzeRequest with base64 image and options
+        request: PlantAnalyzeRequest with base64 image and options (includes optional user_medications)
 
     Returns:
-        Complete plant analysis with compound pathways
+        Complete plant analysis with compound pathways and personalized interactions
     """
     try:
         logger.info("Full plant analysis request received")
@@ -438,25 +453,51 @@ async def analyze_plant(request: PlantAnalyzeRequest):
                 "error": result.identification.error
             },
             "compounds_found": [compound_to_dict(c) for c in result.compounds_found],
-            "compound_analyses": [
-                {
-                    "compound_name": report.ingredient_name,
-                    "targets_found": len(report.known_targets),
-                    "pathways_found": len(report.pathways),
-                    "top_pathways": [
-                        {
-                            "name": p.pathway_name,
-                            "impact_score": p.impact_score,
-                            "url": p.pathway_url
-                        }
-                        for p in report.pathways[:5]
-                    ]
-                }
-                for report in result.compound_reports
-            ],
-            "aggregate_pathways": result.aggregate_pathways,
-            "summary": result.summary
+            "compound_analyses": []
         }
+
+        # Analyze each compound and optionally check interactions
+        for report in result.compound_reports:
+            compound_analysis = {
+                "compound_name": report.ingredient_name,
+                "targets_found": len(report.known_targets),
+                "pathways_found": len(report.pathways),
+                "top_pathways": [
+                    {
+                        "name": p.pathway_name,
+                        "impact_score": p.impact_score,
+                        "url": p.pathway_url
+                    }
+                    for p in report.pathways[:5]
+                ]
+            }
+
+            # Check personalized interactions if medications provided
+            if request.user_medications:
+                personalized_interactions = drug_interaction_service.check_compound_medication_interactions(
+                    compound_name=report.ingredient_name,
+                    medication_names=request.user_medications,
+                    targets=report.known_targets,
+                    pathways=report.pathways
+                )
+                compound_analysis["personalized_interactions"] = [
+                    {
+                        "medication_name": interaction.medication_name,
+                        "severity": interaction.severity,
+                        "mechanism": interaction.mechanism,
+                        "clinical_effect": interaction.clinical_effect,
+                        "recommendation": interaction.recommendation,
+                        "evidence_level": interaction.evidence_level,
+                        "shared_targets": interaction.shared_targets,
+                        "shared_pathways": interaction.shared_pathways
+                    }
+                    for interaction in personalized_interactions
+                ]
+
+            response["compound_analyses"].append(compound_analysis)
+
+        response["aggregate_pathways"] = result.aggregate_pathways
+        response["summary"] = result.summary
 
         return response
 
@@ -473,7 +514,8 @@ async def analyze_plant_upload(
     file: UploadFile = File(...),
     organs: Optional[str] = Form(None),
     max_compounds: int = Form(5),
-    enable_predictions: bool = Form(False)
+    enable_predictions: bool = Form(False),
+    user_medications: Optional[str] = Form(None)
 ):
     """
     Complete plant analysis from uploaded image file.
@@ -483,9 +525,10 @@ async def analyze_plant_upload(
         organs: Comma-separated list of organs visible
         max_compounds: Maximum compounds to analyze (default 5)
         enable_predictions: Enable ML predictions (default False)
+        user_medications: Comma-separated list of user medications for interaction checking
 
     Returns:
-        Complete plant analysis with compound pathways
+        Complete plant analysis with compound pathways and personalized interactions
     """
     try:
         # Validate file type
@@ -503,6 +546,11 @@ async def analyze_plant_upload(
         organs_list = None
         if organs:
             organs_list = [o.strip() for o in organs.split(",")]
+
+        # Parse medications if provided
+        medications_list = None
+        if user_medications:
+            medications_list = [m.strip() for m in user_medications.split(",")]
 
         logger.info(f"Full plant analysis upload: {file.filename}")
 
@@ -524,25 +572,51 @@ async def analyze_plant_upload(
                 "error": result.identification.error
             },
             "compounds_found": [compound_to_dict(c) for c in result.compounds_found],
-            "compound_analyses": [
-                {
-                    "compound_name": report.ingredient_name,
-                    "targets_found": len(report.known_targets),
-                    "pathways_found": len(report.pathways),
-                    "top_pathways": [
-                        {
-                            "name": p.pathway_name,
-                            "impact_score": p.impact_score,
-                            "url": p.pathway_url
-                        }
-                        for p in report.pathways[:5]
-                    ]
-                }
-                for report in result.compound_reports
-            ],
-            "aggregate_pathways": result.aggregate_pathways,
-            "summary": result.summary
+            "compound_analyses": []
         }
+
+        # Analyze each compound and optionally check interactions
+        for report in result.compound_reports:
+            compound_analysis = {
+                "compound_name": report.ingredient_name,
+                "targets_found": len(report.known_targets),
+                "pathways_found": len(report.pathways),
+                "top_pathways": [
+                    {
+                        "name": p.pathway_name,
+                        "impact_score": p.impact_score,
+                        "url": p.pathway_url
+                    }
+                    for p in report.pathways[:5]
+                ]
+            }
+
+            # Check personalized interactions if medications provided
+            if medications_list:
+                personalized_interactions = drug_interaction_service.check_compound_medication_interactions(
+                    compound_name=report.ingredient_name,
+                    medication_names=medications_list,
+                    targets=report.known_targets,
+                    pathways=report.pathways
+                )
+                compound_analysis["personalized_interactions"] = [
+                    {
+                        "medication_name": interaction.medication_name,
+                        "severity": interaction.severity,
+                        "mechanism": interaction.mechanism,
+                        "clinical_effect": interaction.clinical_effect,
+                        "recommendation": interaction.recommendation,
+                        "evidence_level": interaction.evidence_level,
+                        "shared_targets": interaction.shared_targets,
+                        "shared_pathways": interaction.shared_pathways
+                    }
+                    for interaction in personalized_interactions
+                ]
+
+            response["compound_analyses"].append(compound_analysis)
+
+        response["aggregate_pathways"] = result.aggregate_pathways
+        response["summary"] = result.summary
 
         return response
 

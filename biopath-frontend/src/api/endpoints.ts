@@ -32,6 +32,12 @@ export const analysisAPI = {
   },
 };
 
+export type Medication = {
+  id: string;
+  name: string;
+  addedAt: string;
+};
+
 // Reactome pathway data types
 export interface ReactomePathwayDetails {
   pathway_id: string;

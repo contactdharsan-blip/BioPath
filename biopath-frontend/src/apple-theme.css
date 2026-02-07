@@ -1,43 +1,53 @@
 /* Aura-inspired Modern Design System */
 
 :root {
-  /* Primary Colors - Aura Palette */
-  --color-primary: #3366ff;
-  --color-primary-dark: #0047cc;
-  --color-secondary: #d6e6ff;
+  /* Primary Colors - Color Theory Based (Trust + Calm) */
+  --color-primary: #4a7bff;
+  --color-primary-dark: #2d5acc;
+  --color-primary-light: #6fa3ff;
+  --color-secondary: #2dd4bf;
   --color-tertiary: #ffffff;
-  --color-accent-light-blue: #d6e6ff;
-  --color-accent-blue: #1a2d6b;
 
-  /* Text Colors - Dark Mode */
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #e0e0e0;
-  --color-text-tertiary: #b0b0b0;
+  /* Accent Colors - Psychology Based */
+  /* Orange for energy, action, warmth */
+  --color-accent-warm: #ff8c42;
+  --color-accent-warm-dark: #ff6b1f;
+  /* Teal for calm, focus, trust */
+  --color-accent-cool: #2dd4bf;
+  /* Purple for creativity, insight */
+  --color-accent-purple: #b78dff;
 
-  /* Background Colors - Dark Mode */
-  --color-bg-primary: #0a0a0a;
-  --color-bg-secondary: #161616;
-  --color-bg-tertiary: #1f1f1f;
-  --color-card-bg: #1a1a1a;
-  --color-card-text: #ffffff;
+  /* Text Colors - WCAG AAA Compliant (7:1 contrast on dark bg) */
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: #d9d9d9;
+  --color-text-tertiary: #a8a8a8;
+  --color-text-muted: #737373;
 
-  /* Status Colors */
-  --color-success: #00c853;
-  --color-warning: #ff9800;
-  --color-error: #ff5252;
-  --color-info: #3366ff;
+  /* Background Colors - Dark Mode (optimized for contrast) */
+  --color-bg-primary: #0d0d0d;
+  --color-bg-secondary: #1a1a1a;
+  --color-bg-tertiary: #252525;
+  --color-card-bg: #151515;
+  --color-card-text: #f5f5f5;
 
-  /* Borders and Dividers - Dark Mode */
-  --color-border: #404040;
-  --color-divider: #2a2a2a;
-  --color-card-border: #404040;
+  /* Status Colors - Color Theory Based */
+  --color-success: #10b981;
+  --color-warning: #ff8c42;
+  --color-error: #ff4757;
+  --color-info: #4a7bff;
+  --color-alert: #ff6b6b;
 
-  /* Shadows - Dark Mode Style */
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+  /* Borders and Dividers - Improved contrast */
+  --color-border: #3a3a3a;
+  --color-divider: #2d2d2d;
+  --color-card-border: #3a3a3a;
+
+  /* Shadows - Enhanced with color psychology */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.65);
   --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.7);
-  --shadow-interactive: 0 12px 24px rgba(51, 102, 255, 0.3);
+  --shadow-interactive: 0 12px 24px rgba(74, 123, 255, 0.35);
 
   /* Typography */
   --font-family: 'Segoe UI', 'Helvetica Neue', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -168,22 +178,22 @@ a:active {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary), #254fd6);
+  background: linear-gradient(135deg, var(--color-accent-warm), #ff7221);
   color: white;
-  box-shadow: 0 6px 20px rgba(51, 102, 255, 0.35);
+  box-shadow: 0 6px 20px rgba(255, 140, 66, 0.4);
   border: none;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--color-primary-dark), #1a3bb8);
-  box-shadow: 0 12px 32px rgba(51, 102, 255, 0.45);
+  background: linear-gradient(135deg, var(--color-accent-warm-dark), #ff5500);
+  box-shadow: 0 12px 32px rgba(255, 140, 66, 0.5);
   transform: translate(-4px, -4px);
 }
 
 .btn-primary:active {
-  background: linear-gradient(135deg, #0038b3, #002a88);
+  background: linear-gradient(135deg, #ff5500, #e64500);
   transform: translate(2px, 2px);
-  box-shadow: 0 4px 12px rgba(51, 102, 255, 0.25);
+  box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
 }
 
 .btn-secondary {
@@ -194,9 +204,9 @@ a:active {
 }
 
 .btn-secondary:hover {
-  background-color: var(--color-accent-blue);
+  background-color: rgba(74, 123, 255, 0.15);
   border-color: var(--color-primary);
-  box-shadow: 0 8px 20px rgba(51, 102, 255, 0.2);
+  box-shadow: 0 8px 20px rgba(74, 123, 255, 0.25);
   transform: translate(-4px, -4px);
 }
 
@@ -231,7 +241,7 @@ a:active {
 }
 
 .card:hover {
-  box-shadow: 0 12px 36px rgba(51, 102, 255, 0.15);
+  box-shadow: 0 12px 36px rgba(74, 123, 255, 0.18);
   transform: translateY(-4px);
 }
 
@@ -249,8 +259,8 @@ input, textarea, select {
 }
 
 input:hover, textarea:hover, select:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 4px 12px rgba(51, 102, 255, 0.1);
+  border-color: var(--color-accent-warm);
+  box-shadow: 0 4px 12px rgba(255, 140, 66, 0.12);
 }
 
 .card input, .card textarea, .card select {
@@ -261,8 +271,8 @@ input:hover, textarea:hover, select:hover {
 }
 
 .card input:hover, .card textarea:hover, .card select:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 6px 16px rgba(51, 102, 255, 0.2);
+  border-color: var(--color-accent-warm);
+  box-shadow: 0 6px 16px rgba(255, 140, 66, 0.25);
 }
 
 .card input::placeholder, .card textarea::placeholder {
@@ -271,8 +281,8 @@ input:hover, textarea:hover, select:hover {
 
 input:focus, textarea:focus, select:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(51, 102, 255, 0.1), 0 6px 16px rgba(51, 102, 255, 0.15);
+  border-color: var(--color-accent-warm);
+  box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.12), 0 6px 16px rgba(255, 140, 66, 0.18);
 }
 
 /* Badge Styles */

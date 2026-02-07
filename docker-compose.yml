@@ -1,88 +1,22 @@
-services:
-  # Redis for caching and Celery broker
-  redis:
-    image: redis:7-alpine
-    container_name: biopath-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+version: '3.8'
 
-  # FastAPI application with integrated frontend
-  api:
+services:
+  biopath:
     build:
       context: .
-      dockerfile: docker/Dockerfile
-    container_name: biopath-api
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - DISK_CACHE_DIR=/app/cache
       - DEBUG=false
+      - PYTHONUNBUFFERED=1
     volumes:
-      - cache_data:/app/cache
-    depends_on:
-      redis:
-        condition: service_healthy
-    command: /opt/conda/envs/biopath/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 120 --workers 4
+      # Optional: mount logs directory
+      - ./logs:/app/logs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 30s
-      retries: 5
-      start_period: 60s
-
-  # Celery worker for async tasks
-  celery-worker:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    container_name: biopath-celery-worker
-    env_file:
-      - .env
-    environment:
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - DISK_CACHE_DIR=/app/cache
-    volumes:
-      - cache_data:/app/cache
-    depends_on:
-      redis:
-        condition: service_healthy
-    command: /opt/conda/envs/biopath/bin/celery -A app.tasks.celery_tasks worker --loglevel=info --concurrency=2
-
-  # Optional: Flower for Celery monitoring
-  flower:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    container_name: biopath-flower
-    ports:
-      - "5555:5555"
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-    depends_on:
-      - redis
-      - celery-worker
-    command: /opt/conda/envs/biopath/bin/celery -A app.tasks.celery_tasks flower --port=5555
-
-volumes:
-  redis_data:
-  cache_data:
-
-networks:
-  default:
-    name: biopath-network
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped

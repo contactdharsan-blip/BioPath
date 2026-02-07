@@ -12,7 +12,7 @@
   --color-text-tertiary: #a1a1a6;
 
   /* Background Colors */
-  --color-bg-primary: #f5f5f7;
+  --color-bg-primary: #ffffff;
   --color-bg-secondary: #ffffff;
   --color-bg-tertiary: #efefef;
   --color-card-bg: #1d1d1f;
@@ -71,13 +71,13 @@
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-text-primary: #1d1d1d;
-    --color-text-secondary: #6e6e73;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #f5f5f7;
     --color-text-tertiary: #a1a1a6;
 
-    --color-bg-primary: #ffffff;
-    --color-bg-secondary: #f5f5f7;
-    --color-bg-tertiary: #efefef;
+    --color-bg-primary: #000000;
+    --color-bg-secondary: #1d1d1f;
+    --color-bg-tertiary: #2a2a2e;
 
     --color-border: #d5d5d7;
     --color-divider: #e5e5e7;

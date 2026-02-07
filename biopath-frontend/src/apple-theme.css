@@ -1,42 +1,44 @@
-/* Apple-inspired Design System */
+/* Aura-inspired Modern Design System */
 
 :root {
-  /* Primary Colors - Minimalist Apple Palette */
-  --color-primary: #0071e3;
-  --color-secondary: #f5f5f7;
+  /* Primary Colors - Aura Palette */
+  --color-primary: #3366ff;
+  --color-primary-dark: #0047cc;
+  --color-secondary: #d6e6ff;
   --color-tertiary: #ffffff;
 
   /* Text Colors */
-  --color-text-primary: #1d1d1d;
-  --color-text-secondary: #6e6e73;
-  --color-text-tertiary: #a1a1a6;
+  --color-text-primary: #161616;
+  --color-text-secondary: #4a4a4a;
+  --color-text-tertiary: #7a7a7a;
 
   /* Background Colors */
   --color-bg-primary: #ffffff;
-  --color-bg-secondary: #ffffff;
-  --color-bg-tertiary: #efefef;
-  --color-card-bg: #1d1d1f;
-  --color-card-text: #f5f5f7;
+  --color-bg-secondary: #f8f9fb;
+  --color-bg-tertiary: #f0f3f8;
+  --color-card-bg: #161616;
+  --color-card-text: #ffffff;
 
-  /* Status Colors - Subtle */
-  --color-success: #34c759;
-  --color-warning: #ff9500;
-  --color-error: #ff3b30;
-  --color-info: #0071e3;
+  /* Status Colors */
+  --color-success: #00c853;
+  --color-warning: #ff9800;
+  --color-error: #ff5252;
+  --color-info: #3366ff;
 
   /* Borders and Dividers */
-  --color-border: #d5d5d7;
-  --color-divider: #e5e5e7;
-  --color-card-border: #424245;
+  --color-border: #e0e0e0;
+  --color-divider: #ebebeb;
+  --color-card-border: #3a3a3a;
 
-  /* Shadows - Subtle Apple Style */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+  /* Shadows - Modern Aura Style */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.18);
+  --shadow-interactive: 0 12px 24px rgba(51, 102, 255, 0.2);
 
   /* Typography */
-  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+  --font-family: 'Segoe UI', 'Helvetica Neue', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-size-xs: 0.8125rem;
   --font-size-sm: 0.9375rem;
   --font-size-base: 1rem;
@@ -46,7 +48,7 @@
   --font-size-3xl: 2rem;
   --font-size-4xl: 2.5rem;
 
-  /* Spacing - Based on 4px grid */
+  /* Spacing - Generous Aura-style spacing */
   --spacing-1: 0.25rem;
   --spacing-2: 0.5rem;
   --spacing-3: 0.75rem;
@@ -62,28 +64,34 @@
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
 
-  /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-base: 250ms cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-slow: 350ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* Transitions - Smooth and snappy */
+  --transition-fast: 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-base: 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-slow: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   :root {
     --color-text-primary: #ffffff;
-    --color-text-secondary: #f5f5f7;
-    --color-text-tertiary: #a1a1a6;
+    --color-text-secondary: #e0e0e0;
+    --color-text-tertiary: #b0b0b0;
 
-    --color-bg-primary: #000000;
-    --color-bg-secondary: #1d1d1f;
-    --color-bg-tertiary: #2a2a2e;
+    --color-bg-primary: #0a0a0a;
+    --color-bg-secondary: #161616;
+    --color-bg-tertiary: #1f1f1f;
 
-    --color-border: #d5d5d7;
-    --color-divider: #e5e5e7;
-    --color-card-bg: #1d1d1f;
-    --color-card-text: #f5f5f7;
-    --color-card-border: #424245;
+    --color-border: #404040;
+    --color-divider: #2a2a2a;
+    --color-card-bg: #1a1a1a;
+    --color-card-text: #ffffff;
+    --color-card-border: #404040;
+
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.7);
+    --shadow-interactive: 0 12px 24px rgba(51, 102, 255, 0.3);
   }
 }
 
@@ -148,19 +156,19 @@ a {
 }
 
 a:hover {
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 a:active {
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
-/* Buttons - Apple Style */
+/* Buttons - Aura Interactive Style */
 .btn {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
-  font-weight: 500;
-  padding: 0.5rem 1rem;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -170,35 +178,48 @@ a:active {
   justify-content: center;
   gap: 0.5rem;
   white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:active {
+  transform: translate(2px, 2px);
 }
 
 .btn-primary {
   background-color: var(--color-primary);
   color: white;
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-primary:hover {
-  background-color: #0077ed;
   box-shadow: var(--shadow-md);
 }
 
+.btn-primary:hover {
+  background-color: var(--color-primary-dark);
+  box-shadow: var(--shadow-interactive);
+  transform: translate(-2px, -2px);
+}
+
 .btn-primary:active {
-  background-color: #0056b3;
+  background-color: #0038b3;
+  transform: translate(2px, 2px);
 }
 
 .btn-secondary {
   background-color: var(--color-bg-secondary);
   color: var(--color-text-primary);
   border: 1px solid var(--color-divider);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-secondary:hover {
   background-color: var(--color-bg-tertiary);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translate(-2px, -2px);
 }
 
 .btn-secondary:active {
   background-color: var(--color-bg-tertiary);
+  transform: translate(2px, 2px);
 }
 
 /* Cards */
@@ -208,20 +229,21 @@ a:active {
   border: 1px solid var(--color-card-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-8);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
   transition: all var(--transition-base);
 }
 
 .card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-  border-color: var(--color-card-border);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
 }
 
 /* Input Fields */
 input, textarea, select {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem;
   border: 1px solid var(--color-divider);
   border-radius: var(--radius-md);
   background-color: var(--color-bg-secondary);
@@ -229,8 +251,12 @@ input, textarea, select {
   transition: all var(--transition-fast);
 }
 
+input:hover, textarea:hover, select:hover {
+  border-color: var(--color-border);
+}
+
 .card input, .card textarea, .card select {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.08);
   color: var(--color-card-text);
   border-color: var(--color-card-border);
 }
@@ -242,35 +268,36 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.1);
+  box-shadow: 0 0 0 3px rgba(51, 102, 255, 0.1);
 }
 
-/* Badge Styles - Apple Inspired */
+/* Badge Styles */
 .badge {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
+  padding: 0.35rem 0.85rem;
   border-radius: 1rem;
   font-size: var(--font-size-xs);
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .badge-primary {
-  background-color: rgba(0, 113, 227, 0.1);
+  background-color: rgba(51, 102, 255, 0.1);
   color: var(--color-primary);
 }
 
 .badge-success {
-  background-color: rgba(52, 199, 89, 0.1);
+  background-color: rgba(0, 200, 83, 0.1);
   color: var(--color-success);
 }
 
 .badge-warning {
-  background-color: rgba(255, 149, 0, 0.1);
+  background-color: rgba(255, 152, 0, 0.1);
   color: var(--color-warning);
 }
 
 .badge-error {
-  background-color: rgba(255, 59, 48, 0.1);
+  background-color: rgba(255, 82, 82, 0.1);
   color: var(--color-error);
 }
 
@@ -281,7 +308,7 @@ hr {
   margin: var(--spacing-6) 0;
 }
 
-/* Scrollbar - Apple Style */
+/* Scrollbar - Modern Aura Style */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -324,8 +351,23 @@ hr {
   }
 }
 
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-slide-up {
   animation: slideUp var(--transition-base) ease-out;
+}
+
+.animate-slide-down {
+  animation: slideDown var(--transition-base) ease-out;
 }
 
 /* Utility Classes */
@@ -342,7 +384,7 @@ hr {
 }
 
 .card .text-secondary {
-  color: rgba(245, 245, 247, 0.8);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .text-tertiary {
@@ -350,7 +392,7 @@ hr {
 }
 
 .card .text-tertiary {
-  color: rgba(245, 245, 247, 0.6);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .bg-primary {
@@ -384,7 +426,7 @@ hr {
 /* Responsive Grid */
 .grid {
   display: grid;
-  gap: var(--spacing-6);
+  gap: var(--spacing-8);
 }
 
 @media (max-width: 640px) {
@@ -398,5 +440,10 @@ hr {
 
   .card {
     padding: var(--spacing-6);
+  }
+
+  .btn {
+    padding: 0.65rem 1.25rem;
+    font-size: var(--font-size-sm);
   }
 }

@@ -3,9 +3,12 @@
 import logging
 from typing import List, Optional
 from app.models.schemas import TargetEvidence, PathwayMatch, PersonalizedInteraction
-from app.clients.drugbank import drugbank_client
+from app.clients.drugbank import DrugBankClient
 
 logger = logging.getLogger(__name__)
+
+# Initialize DrugBank client
+drugbank_client = DrugBankClient()
 
 
 class DrugInteractionService:

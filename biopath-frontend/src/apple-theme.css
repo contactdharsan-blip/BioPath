@@ -7,18 +7,18 @@
   --color-secondary: #d6e6ff;
   --color-tertiary: #ffffff;
   --color-accent-light-blue: #d6e6ff;
-  --color-accent-blue: #e8f0ff;
+  --color-accent-blue: #1a2d6b;
 
-  /* Text Colors */
-  --color-text-primary: #161616;
-  --color-text-secondary: #4a4a4a;
-  --color-text-tertiary: #7a7a7a;
+  /* Text Colors - Dark Mode */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #e0e0e0;
+  --color-text-tertiary: #b0b0b0;
 
-  /* Background Colors */
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f9fafb;
-  --color-bg-tertiary: #f3f6fb;
-  --color-card-bg: #161616;
+  /* Background Colors - Dark Mode */
+  --color-bg-primary: #0a0a0a;
+  --color-bg-secondary: #161616;
+  --color-bg-tertiary: #1f1f1f;
+  --color-card-bg: #1a1a1a;
   --color-card-text: #ffffff;
 
   /* Status Colors */
@@ -27,17 +27,17 @@
   --color-error: #ff5252;
   --color-info: #3366ff;
 
-  /* Borders and Dividers */
-  --color-border: #e0e0e0;
-  --color-divider: #ebebeb;
-  --color-card-border: #3a3a3a;
+  /* Borders and Dividers - Dark Mode */
+  --color-border: #404040;
+  --color-divider: #2a2a2a;
+  --color-card-border: #404040;
 
-  /* Shadows - Sleek Modern Style */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-interactive: 0 8px 20px rgba(51, 102, 255, 0.15);
+  /* Shadows - Dark Mode Style */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.7);
+  --shadow-interactive: 0 12px 24px rgba(51, 102, 255, 0.3);
 
   /* Typography */
   --font-family: 'Segoe UI', 'Helvetica Neue', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -72,31 +72,6 @@
   --transition-fast: 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
   --transition-base: 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
   --transition-slow: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-text-primary: #ffffff;
-    --color-text-secondary: #e0e0e0;
-    --color-text-tertiary: #b0b0b0;
-
-    --color-bg-primary: #0a0a0a;
-    --color-bg-secondary: #161616;
-    --color-bg-tertiary: #1f1f1f;
-
-    --color-border: #404040;
-    --color-divider: #2a2a2a;
-    --color-card-bg: #1a1a1a;
-    --color-card-text: #ffffff;
-    --color-card-border: #404040;
-
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
-    --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.7);
-    --shadow-interactive: 0 12px 24px rgba(51, 102, 255, 0.3);
-  }
 }
 
 /* Base Styles */
@@ -348,24 +323,14 @@ hr {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.2);
   border-radius: 5px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.4);
-}
-
-@media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.2);
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.4);
-  }
+  background-color: rgba(255, 255, 255, 0.4);
 }
 
 /* Animations */

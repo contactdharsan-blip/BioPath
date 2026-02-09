@@ -174,10 +174,10 @@ function App() {
               <button
                 onClick={() => handleModeChange('compound')}
                 className={clsx(
-                  'px-8 py-3 rounded-full text-sm font-500 transition-all duration-200',
+                  'px-8 py-3 rounded-full text-sm font-500 transition-all duration-300 relative overflow-hidden',
                   analysisMode === 'compound'
-                    ? 'bg-primary text-white shadow-md'
-                    : 'text-text-secondary hover:text-text-primary'
+                    ? 'bg-gradient-to-r from-accent-warm to-accent-warm-dark text-white shadow-lg animate-liquid-glass'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
                 )}
               >
                 <span className="mr-2">💊</span>
@@ -186,10 +186,10 @@ function App() {
               <button
                 onClick={() => handleModeChange('plant')}
                 className={clsx(
-                  'px-8 py-3 rounded-full text-sm font-500 transition-all duration-200',
+                  'px-8 py-3 rounded-full text-sm font-500 transition-all duration-300 relative overflow-hidden',
                   analysisMode === 'plant'
-                    ? 'bg-primary text-white shadow-md'
-                    : 'text-text-secondary hover:text-text-primary'
+                    ? 'bg-gradient-to-r from-accent-warm to-accent-warm-dark text-white shadow-lg animate-liquid-glass'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
                 )}
               >
                 <span className="mr-2">🌿</span>
@@ -198,10 +198,10 @@ function App() {
               <button
                 onClick={() => handleModeChange('medication-tracker')}
                 className={clsx(
-                  'px-8 py-3 rounded-full text-sm font-500 transition-all duration-200',
+                  'px-8 py-3 rounded-full text-sm font-500 transition-all duration-300 relative overflow-hidden',
                   analysisMode === 'medication-tracker'
-                    ? 'bg-primary text-white shadow-md'
-                    : 'text-text-secondary hover:text-text-primary'
+                    ? 'bg-gradient-to-r from-accent-warm to-accent-warm-dark text-white shadow-lg animate-liquid-glass'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
                 )}
               >
                 <span className="mr-2">🩺</span>
@@ -221,21 +221,23 @@ function App() {
             />
           ) : !result ? (
             /* Input Forms */
-            analysisMode === 'compound' ? (
-              <AnalysisForm onSubmit={handleAnalyze} isLoading={isPending} />
-            ) : analysisMode === 'plant' ? (
-              <PlantIdentification
-                onAnalysisComplete={handlePlantAnalysisComplete}
-                onError={handlePlantError}
-                isLoading={plantLoading}
-                setIsLoading={setPlantLoading}
-              />
-            ) : (
-              <MedicationListManager
-                medications={medications}
-                onMedicationsChange={setMedications}
-              />
-            )
+            <div key={analysisMode} className="animate-content-fade">
+              {analysisMode === 'compound' ? (
+                <AnalysisForm onSubmit={handleAnalyze} isLoading={isPending} />
+              ) : analysisMode === 'plant' ? (
+                <PlantIdentification
+                  onAnalysisComplete={handlePlantAnalysisComplete}
+                  onError={handlePlantError}
+                  isLoading={plantLoading}
+                  setIsLoading={setPlantLoading}
+                />
+              ) : (
+                <MedicationListManager
+                  medications={medications}
+                  onMedicationsChange={setMedications}
+                />
+              )}
+            </div>
           ) : (
             <div className="space-y-6">
               {/* Summary always visible */}

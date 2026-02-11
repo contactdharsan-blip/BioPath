@@ -4,13 +4,13 @@ FROM node:18-alpine AS frontend-builder
 WORKDIR /app/frontend
 
 # Copy frontend package files
-COPY biopath-frontend/package*.json ./
+COPY frontend/package*.json ./
 
 # Install dependencies
 RUN npm ci
 
 # Copy frontend source
-COPY biopath-frontend/ ./
+COPY frontend/ ./
 
 # Build frontend
 RUN npm run build
@@ -26,14 +26,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python requirements
-COPY requirements.txt .
+COPY backend/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend code
-COPY app/ ./app/
-COPY app/main.py ./app/
+COPY backend/app/ ./app/
 
 # Copy frontend build from previous stage
 COPY --from=frontend-builder /app/frontend/dist ./static

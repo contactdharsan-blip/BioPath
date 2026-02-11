@@ -9,8 +9,14 @@ python-multipart==0.0.6
 httpx==0.26.0
 requests==2.31.0
 
-# Cheminformatics
+# Cheminformatics & Machine Learning
 rdkit==2023.9.4
+
+# Deep Learning (Optional - for DeepPurpose/DeepChem ML predictions)
+# Note: These are optional. Install only if you want trained ML models
+# torch>=2.0.0          # PyTorch (for GPU: use torch+cuda version)
+# DeepPurpose>=0.1.0    # Drug-target interaction prediction
+# deepchem>=4.0.0       # Alternative: Deep learning for chemistry
 
 # Async processing
 celery[redis]==5.3.6

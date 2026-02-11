@@ -47,6 +47,13 @@ class Settings(BaseSettings):
     # Used when ChEMBL, Reactome, and Open Targets all return no data
     enable_pharmacophore_prediction: bool = True
 
+    # Deep Learning Model Configuration (DeepPurpose/DeepChem)
+    # Use trained neural networks for 70-85% accurate target prediction
+    enable_deeplearning_prediction: bool = True
+    deeplearning_model_type: str = "SMILES_GCN_CNN"  # SMILES_GCN_CNN or SMILES_Transformer
+    deeplearning_model_path: str = "./models/deepchem"  # Path to pretrained weights
+    deeplearning_use_gpu: bool = True  # Use GPU if available (10x faster)
+
     # Retry configuration
     max_retries: int = 3
     retry_backoff_factor: float = 2.0

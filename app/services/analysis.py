@@ -193,7 +193,7 @@ class AnalysisService:
         self,
         compound: CompoundIdentity
     ) -> tuple[list[TargetEvidence], ProvenanceRecord]:
-        """Get target evidence from ChEMBL with caching"""
+        """Get target evidence from ChEMBL with DrugBank fallback"""
         cache_key = compound.inchikey
 
         # Check cache
@@ -221,6 +221,28 @@ class AnalysisService:
                 cache_key,
                 [t.model_dump() for t in targets]
             )
+            return targets, prov
+
+        # Fallback to DrugBank/Open Targets if ChEMBL has no targets
+        if not targets and settings.enable_drugbank_fallback:
+            logger.info(f"No ChEMBL targets found, trying Open Targets fallback for {compound.ingredient_name}")
+            drugbank_targets = self.drugbank.get_drug_targets(compound.ingredient_name)
+
+            if drugbank_targets:
+                # Cache the fallback results
+                self.cache.set(
+                    "targets",
+                    cache_key,
+                    [t.model_dump() for t in drugbank_targets]
+                )
+
+                fallback_prov = ProvenanceRecord(
+                    service="Open Targets",
+                    endpoint="/graphql (drug targets fallback)",
+                    status="success"
+                )
+                logger.info(f"Found {len(drugbank_targets)} targets via Open Targets fallback")
+                return drugbank_targets, fallback_prov
 
         return targets, prov
 

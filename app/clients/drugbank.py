@@ -13,7 +13,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 import logging
 
 from app.config import settings
-from app.models.schemas import PathwayMatch, ConfidenceTier
+from app.models.schemas import PathwayMatch, ConfidenceTier, TargetEvidence, AssayReference
 from app.services.cache import cache_service
 from app.utils import fetch_concurrent
 
@@ -22,8 +22,13 @@ logger = logging.getLogger(__name__)
 
 class DrugBankClient:
     """
-    Client for fetching drug pathway data from free public APIs.
-    Acts as a fallback when Reactome/ChEMBL don't have pathway data.
+    Client for fetching drug targets and pathway data from free public APIs.
+    Acts as a fallback when ChEMBL/Reactome don't have target or pathway data.
+
+    Uses:
+    - Open Targets Platform (GraphQL) - for drug mechanisms and targets
+    - WikiPathways - for pathway data
+    - DGIdb - for drug-gene interactions
     """
 
     def __init__(self):
@@ -329,6 +334,84 @@ class DrugBankClient:
 
         except Exception as e:
             logger.error(f"Error getting pathways for drug {drug_name}: {e}")
+            return []
+
+    def get_drug_targets(self, drug_name: str) -> List[TargetEvidence]:
+        """
+        Get drug targets from Open Targets as TargetEvidence objects.
+        Used as fallback when ChEMBL has no target data.
+
+        Args:
+            drug_name: Drug/compound name (e.g., "ibuprofen")
+
+        Returns:
+            List of TargetEvidence objects with Open Targets data
+        """
+        try:
+            # Step 1: Search for the drug
+            drug_info = self.search_drug_by_name(drug_name)
+            if not drug_info:
+                logger.warning(f"Drug {drug_name} not found in Open Targets")
+                return []
+
+            drug_id = drug_info.get("id", "")
+            logger.info(f"Found drug {drug_name} with ID {drug_id}")
+
+            # Step 2: Get mechanisms of action (which includes targets)
+            mechanisms = self.get_drug_mechanisms(drug_id)
+            if not mechanisms:
+                logger.warning(f"No mechanisms found for {drug_name}")
+                return []
+
+            # Step 3: Build TargetEvidence objects from mechanisms
+            targets = []
+            seen_target_ids = set()
+
+            for mechanism in mechanisms:
+                targets_list = mechanism.get("targets", [])
+                for target in targets_list:
+                    target_id = target.get("id", "")
+                    target_name = target.get("approvedName", "")
+
+                    # Avoid duplicates
+                    if not target_id or target_id in seen_target_ids:
+                        continue
+
+                    seen_target_ids.add(target_id)
+
+                    # Get mechanism of action info
+                    moa = mechanism.get("mechanismOfAction", "")
+
+                    # Create TargetEvidence
+                    evidence = TargetEvidence(
+                        target_id=target_id,
+                        target_name=target_name,
+                        target_type="SINGLE PROTEIN",
+                        organism="Homo sapiens",
+                        pchembl_value=None,  # Open Targets doesn't provide IC50-like values
+                        standard_type=None,
+                        standard_value=None,
+                        standard_units=None,
+                        assay_references=[
+                            AssayReference(
+                                assay_id=drug_id,
+                                assay_description=f"Open Targets mechanism: {moa}",
+                                source="Open Targets",
+                                source_url=f"https://platform.opentargets.org/target/{target_id}"
+                            )
+                        ],
+                        confidence_tier=ConfidenceTier.TIER_B,  # Lower confidence than measured ChEMBL data
+                        confidence_score=0.7,  # Moderate confidence for Open Targets data
+                        is_predicted=False,
+                        source="Open Targets"
+                    )
+                    targets.append(evidence)
+
+            logger.info(f"Found {len(targets)} targets for {drug_name} via Open Targets")
+            return targets
+
+        except Exception as e:
+            logger.error(f"Error getting targets for drug {drug_name}: {e}")
             return []
 
     def get_drug_interactions(self, drug_name: str) -> List[Dict[str, Any]]:

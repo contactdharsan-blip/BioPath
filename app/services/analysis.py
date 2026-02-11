@@ -18,6 +18,7 @@ from app.clients.drugbank import DrugBankClient
 from app.services.cache import cache_service
 from app.services.scoring import ScoringEngine
 from app.services.target_prediction_service import target_prediction_service
+from app.services.pharmacophore_analysis import pharmacophore_analyzer
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -122,6 +123,23 @@ class AnalysisService:
                 )
                 provenance.append(fallback_prov)
                 logger.info(f"Found {len(pathways)} pathways via Open Targets fallback")
+
+        # Step 4b2: Fallback to pharmacophore analysis if no pathways from any source
+        if not pathways and settings.enable_pharmacophore_prediction and compound and compound.canonical_smiles:
+            logger.info(f"No pathways from Reactome/Open Targets, trying pharmacophore analysis for {ingredient_name}")
+            _, pharma_pathways = pharmacophore_analyzer.analyze_compound(
+                compound.canonical_smiles,
+                ingredient_name
+            )
+            if pharma_pathways:
+                pathways = pharma_pathways
+                pharma_prov = ProvenanceRecord(
+                    service="Pharmacophore Analysis",
+                    endpoint="/functional_group_analysis",
+                    status="success"
+                )
+                provenance.append(pharma_prov)
+                logger.info(f"Found {len(pathways)} pathways via pharmacophore analysis")
 
         # Step 4c: Infer pathways from ChEMBL drug indications (enhances results)
         if compound and compound.inchikey:
@@ -243,6 +261,30 @@ class AnalysisService:
                 )
                 logger.info(f"Found {len(drugbank_targets)} targets via Open Targets fallback")
                 return drugbank_targets, fallback_prov
+
+        # Fallback to pharmacophore analysis if all other methods fail
+        if not targets and settings.enable_pharmacophore_prediction and compound.canonical_smiles:
+            logger.info(f"No targets from ChEMBL/Open Targets, trying pharmacophore analysis for {compound.ingredient_name}")
+            pharma_targets, _ = pharmacophore_analyzer.analyze_compound(
+                compound.canonical_smiles,
+                compound.ingredient_name
+            )
+
+            if pharma_targets:
+                # Cache the fallback results
+                self.cache.set(
+                    "targets",
+                    cache_key,
+                    [t.model_dump() for t in pharma_targets]
+                )
+
+                pharma_prov = ProvenanceRecord(
+                    service="Pharmacophore Analysis",
+                    endpoint="/functional_group_analysis",
+                    status="success"
+                )
+                logger.info(f"Found {len(pharma_targets)} targets via pharmacophore analysis")
+                return pharma_targets, pharma_prov
 
         return targets, prov
 

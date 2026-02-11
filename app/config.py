@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # Predicts targets when ChEMBL has no data based on chemical structure
     enable_ml_target_prediction: bool = True
 
+    # Pharmacophore-based target prediction fallback
+    # Analyzes functional groups/drug classes to predict targets and pathways
+    # Used when ChEMBL, Reactome, and Open Targets all return no data
+    enable_pharmacophore_prediction: bool = True
+
     # Retry configuration
     max_retries: int = 3
     retry_backoff_factor: float = 2.0

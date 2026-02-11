@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     # DrugBank fallback (uses free Open Targets API when Reactome has no pathways)
     enable_drugbank_fallback: bool = True
 
+    # ML-based target prediction fallback (DeepPurpose-like)
+    # Predicts targets when ChEMBL has no data based on chemical structure
+    enable_ml_target_prediction: bool = True
+
     # Retry configuration
     max_retries: int = 3
     retry_backoff_factor: float = 2.0

@@ -17,6 +17,7 @@ from app.clients import PubChemClient, ChEMBLClient, ReactomeClient
 from app.clients.drugbank import DrugBankClient
 from app.services.cache import cache_service
 from app.services.scoring import ScoringEngine
+from app.services.target_prediction_service import target_prediction_service
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,17 @@ class AnalysisService:
             if prov:
                 provenance.append(prov)
 
+        # Step 3b: Fallback to open-source ML prediction if no targets found
+        # Similar to DeepPurpose - uses chemical structure analysis for target prediction
+        ml_predicted_targets = []
+        if not known_targets and not predicted_targets and settings.enable_ml_target_prediction:
+            logger.info(f"No ChEMBL or docking targets found, using open-source ML prediction for {ingredient_name}")
+            ml_predicted_targets, prov = self._predict_targets_ml_fallback(compound)
+            if prov:
+                provenance.append(prov)
+            # Add ML predictions to known_targets since they're TargetEvidence
+            known_targets.extend(ml_predicted_targets)
+
         # Step 4: Map targets to pathways
         all_targets = known_targets + predicted_targets
         pathways = []
@@ -95,7 +107,7 @@ class AnalysisService:
             pathways, prov = self._map_pathways(known_targets, predicted_targets)
             provenance.append(prov)
         else:
-            logger.warning(f"No targets (measured or predicted) for {ingredient_name}, trying indication inference")
+            logger.warning(f"No targets (measured, docking, or ML-predicted) for {ingredient_name}, trying indication inference")
 
         # Step 4b: Fallback to DrugBank/Open Targets if Reactome has no pathways
         if not pathways and settings.enable_drugbank_fallback:
@@ -242,6 +254,60 @@ class AnalysisService:
                 endpoint="local_prediction",
                 status="error",
                 error_message=str(e)
+            )
+            return [], prov
+
+    def _predict_targets_ml_fallback(
+        self,
+        compound: CompoundIdentity
+    ) -> tuple[list[TargetEvidence], ProvenanceRecord]:
+        """
+        Fallback target prediction using open-source ML methods.
+
+        When ChEMBL has no data and docking is unavailable, uses:
+        - Chemical structure analysis (SMILES)
+        - Functional group pattern matching
+        - Similarity to known drug-target interactions
+
+        Similar to DeepPurpose but using lightweight open-source methods.
+        """
+        import time
+        start_time = time.time()
+
+        try:
+            logger.info(f"Starting ML-based target prediction for {compound.ingredient_name}")
+
+            # Use the target prediction service
+            predictions = target_prediction_service.predict_targets(
+                compound_name=compound.ingredient_name,
+                smiles=compound.canonical_smiles,
+                inchikey=compound.inchikey,
+                top_k=10
+            )
+
+            prov = ProvenanceRecord(
+                service="Open-Source ML (DeepPurpose-like)",
+                endpoint="/target_prediction",
+                status="success" if predictions else "no_results",
+                duration_ms=(time.time() - start_time) * 1000,
+                cache_hit=False
+            )
+
+            logger.info(
+                f"ML prediction complete for {compound.ingredient_name}: "
+                f"predicted {len(predictions)} targets"
+            )
+
+            return predictions, prov
+
+        except Exception as e:
+            logger.error(f"ML prediction error for {compound.ingredient_name}: {e}")
+            prov = ProvenanceRecord(
+                service="Open-Source ML (DeepPurpose-like)",
+                endpoint="/target_prediction",
+                status="error",
+                error_message=str(e),
+                duration_ms=(time.time() - start_time) * 1000
             )
             return [], prov
 

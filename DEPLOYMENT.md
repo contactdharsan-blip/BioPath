@@ -471,6 +471,79 @@ services:
 
 ---
 
+## AI/ML Features
+
+### Open-Source Target Prediction (DeepPurpose-like Fallback)
+
+BioPath includes a lightweight, open-source compound-target interaction prediction system that serves as a fallback when ChEMBL has no bioactivity data.
+
+**How it works:**
+1. Analyzes chemical structure from SMILES strings
+2. Detects functional groups (aromatic rings, amines, carboxylic acids, etc.)
+3. Infers mechanisms of action based on chemical properties
+4. Scores known human protein targets based on interaction likelihood
+5. Returns predicted targets with confidence scores and mechanism explanations
+
+**Advantages:**
+- **No external dependencies** - Uses built-in pattern matching and heuristics
+- **Fast** - Completes in milliseconds
+- **Transparent** - Explains which chemical features support each prediction
+- **Graceful fallback** - Only activates when ChEMBL has no data
+- **RDKit optional** - Works with or without RDKit library
+
+**Configuration:**
+
+```bash
+# Enable/disable ML target prediction (default: enabled)
+ENABLE_ML_TARGET_PREDICTION=true
+```
+
+**When it activates:**
+1. User analyzes a compound
+2. System resolves compound structure via PubChem
+3. Queries ChEMBL for known targets
+4. If **no ChEMBL targets found** AND **no docking plugin** AND **ML prediction enabled**:
+   - Runs open-source ML prediction
+   - Returns predicted targets (Confidence Tier C)
+   - Adds provenance record: "Open-Source ML (DeepPurpose-like)"
+
+**Example analysis:**
+
+```json
+{
+  "ingredient_name": "unknown_compound",
+  "compound_identity": {...},
+  "known_targets": [
+    {
+      "target_id": "P00698",
+      "target_name": "Cytochrome P450 3A4",
+      "confidence_score": 0.65,
+      "confidence_tier": "C",
+      "is_predicted": true,
+      "source": "ML Prediction Service",
+      "assay_references": [{
+        "assay_description": "ML-based prediction: Enzyme Inhibition. Evidence: Functional groups: aromatic, amine"
+      }]
+    }
+  ],
+  "pathways": [...],
+  "provenance": [
+    {
+      "service": "Open-Source ML (DeepPurpose-like)",
+      "endpoint": "/target_prediction",
+      "status": "success"
+    }
+  ]
+}
+```
+
+**Prediction confidence:**
+- **Tier A (0.9-1.0)**: Measured bioassay data from ChEMBL
+- **Tier B (0.7-0.8)**: Pathway inference from known targets
+- **Tier C (0.3-0.7)**: ML-based predictions (this feature)
+
+---
+
 ## Security Considerations
 
 1. **Use environment variables for secrets**

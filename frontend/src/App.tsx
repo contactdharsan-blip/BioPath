@@ -6,7 +6,7 @@ import { CompoundInfo } from './components/analysis/CompoundInfo';
 import { SummaryCard } from './components/analysis/SummaryCard';
 import { TargetsList } from './components/analysis/TargetsList';
 import { PathwaysList } from './components/analysis/PathwaysList';
-import { MoleculeViewer } from './components/analysis/MoleculeViewer';
+import { BodyDiagram } from './components/analysis/BodyDiagram';
 import { SideEffectsTab } from './components/analysis/SideEffectsTab';
 import { DrugInteractionsTab } from './components/analysis/DrugInteractionsTab';
 import { PersonalizedInteractionsTab } from './components/analysis/PersonalizedInteractionsTab';
@@ -99,10 +99,10 @@ function App() {
     },
     {
       id: '3d-structure',
-      label: '3D Structure',
+      label: 'Body Impact',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m7.538-4a3.998 3.998 0 00-5.441 0L12 7.939M3 12a9 9 0 1118 0m0 0a9 9 0 01-18 0m18 0a9 9 0 01-18 0m9-9a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
     },
@@ -281,7 +281,11 @@ function App() {
                 )}
 
                 {activeTab === '3d-structure' && (
-                  <MoleculeViewer compound={result.compound_identity} />
+                  <BodyDiagram
+                    targets={result.known_targets}
+                    pathways={result.pathways}
+                    compoundName={result.ingredient_name}
+                  />
                 )}
 
                 {activeTab === 'targets' && (

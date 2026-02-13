@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import type { PathwayMatch } from '../../api/types';
@@ -313,29 +312,9 @@ const PathwayDetail: React.FC<{ pathway: PathwayMatch; isExpanded: boolean }> = 
 
 export const PathwaysList: React.FC<PathwaysListProps> = ({ pathways }) => {
   const [expandedPathway, setExpandedPathway] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<'cards' | 'chart'>('cards');
 
   // Sort by impact score (descending)
   const sortedPathways = [...pathways].sort((a, b) => b.impact_score - a.impact_score);
-
-  // Prepare data for chart
-  const chartData = sortedPathways.slice(0, 10).map((pathway) => ({
-    name: pathway.pathway_name.length > 30
-      ? pathway.pathway_name.substring(0, 30) + '...'
-      : pathway.pathway_name,
-    fullName: pathway.pathway_name,
-    impact: pathway.impact_score * 100,
-    tier: pathway.confidence_tier,
-  }));
-
-  const getBarColor = (tier: string) => {
-    const colors = {
-      A: '#10b981',
-      B: '#f59e0b',
-      C: '#6b7280',
-    };
-    return colors[tier as keyof typeof colors] || colors.C;
-  };
 
   const toggleExpand = (index: number) => {
     setExpandedPathway(expandedPathway === index ? null : index);
@@ -350,75 +329,11 @@ export const PathwaysList: React.FC<PathwaysListProps> = ({ pathways }) => {
             {pathways.length} biological pathway{pathways.length !== 1 ? 's' : ''} affected • Click to load Reactome details
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setViewMode('cards')}
-            className={clsx(
-              'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-              viewMode === 'cards'
-                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-            )}
-          >
-            <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-            </svg>
-            Details
-          </button>
-          <button
-            onClick={() => setViewMode('chart')}
-            className={clsx(
-              'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-              viewMode === 'chart'
-                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-            )}
-          >
-            <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            Chart
-          </button>
-        </div>
       </div>
 
-      {/* Bar Chart View */}
-      {viewMode === 'chart' && chartData.length > 0 && (
-        <div className="mb-8">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} layout="horizontal">
-              <XAxis type="number" domain={[0, 100]} unit="%" stroke="#9ca3af" />
-              <YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 12, fill: '#9ca3af' }} />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload;
-                    return (
-                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3">
-                        <p className="font-medium text-gray-900 dark:text-white text-sm">{data.fullName}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                          Impact: {data.impact.toFixed(1)}%
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Tier {data.tier}</p>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Bar dataKey="impact" radius={[0, 4, 4, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={getBarColor(entry.tier)} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
 
-      {/* Detailed Cards View */}
-      {viewMode === 'cards' && (
-        <div className="space-y-4">
+      {/* Pathway Cards */}
+      <div className="space-y-4">
           {sortedPathways.map((pathway, index) => {
             const healthInfo = getPathwayHealthInfo(pathway.pathway_name);
             const isExpanded = expandedPathway === index;
@@ -491,7 +406,10 @@ export const PathwaysList: React.FC<PathwaysListProps> = ({ pathways }) => {
                         className="h-1.5 rounded-full transition-all duration-300"
                         style={{
                           width: `${pathway.impact_score * 100}%`,
-                          backgroundColor: getBarColor(pathway.confidence_tier),
+                          backgroundColor:
+                            pathway.confidence_tier === 'A' ? '#10b981' :
+                            pathway.confidence_tier === 'B' ? '#f59e0b' :
+                            '#6b7280'
                         }}
                       />
                     </div>
@@ -513,8 +431,7 @@ export const PathwaysList: React.FC<PathwaysListProps> = ({ pathways }) => {
               No pathways found for this compound.
             </div>
           )}
-        </div>
-      )}
+      </div>
 
       {/* Legend */}
       <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">

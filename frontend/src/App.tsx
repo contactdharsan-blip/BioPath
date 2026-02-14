@@ -190,7 +190,6 @@ function App() {
                     : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
                 )}
               >
-                <span className="mr-2">💊</span>
                 Compound
               </button>
               <button
@@ -202,7 +201,6 @@ function App() {
                     : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
                 )}
               >
-                <span className="mr-2">🌿</span>
                 Plant
               </button>
               <button
@@ -214,7 +212,6 @@ function App() {
                     : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
                 )}
               >
-                <span className="mr-2">🩺</span>
                 Medications
               </button>
             </div>

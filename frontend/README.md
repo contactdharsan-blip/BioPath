@@ -4,12 +4,12 @@ Modern, minimalist React + Tailwind CSS frontend for the BioPath Chemical-Target
 
 ## Features
 
-- ✨ **PubChem Autocomplete**: Smart compound search with real-time suggestions
-- 📊 **Interactive Visualizations**: Recharts-powered pathway impact charts
-- 🎨 **Modern UI**: Clean, minimalist design inspired by Stripe/Linear
-- ⚡ **Fast**: Built with Vite for lightning-fast development
-- 🔒 **Type-Safe**: Full TypeScript support
-- 📱 **Responsive**: Works beautifully on all devices
+- **PubChem Autocomplete**: Smart compound search with real-time suggestions
+- **Interactive Visualizations**: Recharts-powered pathway impact charts
+- **Modern UI**: Clean, minimalist design inspired by Stripe/Linear
+- **Fast**: Built with Vite for lightning-fast development
+- **Type-Safe**: Full TypeScript support
+- **Responsive**: Works beautifully on all devices
 
 ## Quick Start
 

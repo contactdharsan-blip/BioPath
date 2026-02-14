@@ -125,7 +125,6 @@ export const PersonalizedInteractionsTab: React.FC<PersonalizedInteractionsTabPr
           )}
           {noneCount > 0 && (
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">✓</div>
               <div className="text-xs text-gray-600 dark:text-gray-400">Safe ({noneCount})</div>
             </div>
           )}
@@ -136,7 +135,7 @@ export const PersonalizedInteractionsTab: React.FC<PersonalizedInteractionsTabPr
       <div className="space-y-3">
         {personalized_interactions.length === 0 ? (
           <div className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-center">
-            <p className="text-lg font-medium text-green-900 dark:text-green-300">✓ No Known Interactions</p>
+            <p className="text-lg font-medium text-green-900 dark:text-green-300">No Known Interactions</p>
             <p className="text-sm text-green-800 dark:text-green-400 mt-2">
               Based on available data, {compoundName} does not have known interactions with your medications.
             </p>

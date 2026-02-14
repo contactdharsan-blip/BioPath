@@ -3,21 +3,21 @@
 **Production-ready framework for analyzing pharmaceutical compounds and mapping their molecular interactions to biological pathways.**
 
 ```
-📦 BioPath/
-├── 🔧 backend/           ← Python FastAPI backend + services
-├── 🎨 frontend/          ← React + TypeScript web UI
-├── 📚 documentation/     ← All guides and specs
+BioPath/
+├── backend/              ← Python FastAPI backend + services
+├── frontend/             ← React + TypeScript web UI
+├── documentation/        ← All guides and specs
 └── README.md             ← This file
 ```
 
 ## Quick Navigation
 
-### 🚀 Getting Started
+### Getting Started
 - **Want to run the project?** → [backend/README.md](backend/README.md)
 - **Want to develop the UI?** → [frontend/README.md](frontend/README.md)
 - **Need documentation?** → [documentation/](documentation/)
 
-### 📖 Key Documentation Files
+### Key Documentation Files
 - [Backend Setup & API](backend/README.md) - Run the API server
 - [Frontend Development](frontend/README.md) - Develop React UI
 - [Usage Guide](documentation/USAGE.md) - How to use BioPath
@@ -85,20 +85,20 @@ BioPath/
 
 ## Key Features
 
-### 🔬 Multi-Database Analysis
+### Multi-Database Analysis
 - **ChEMBL** - Measured protein targets with bioactivity data (Tier A: Highest confidence)
 - **Reactome** - Biological pathway mapping
 - **Open Targets** - Drug mechanisms (fallback)
 - **Pharmacophore Analysis** - Functional group prediction (fallback)
 - **ML Prediction** - DeepPurpose-like neural network predictions
 
-### 📊 Comprehensive Output
+### Comprehensive Output
 - Identified protein targets with potency values
 - Biological pathways affected
 - Impact scores with confidence tiers
 - Full data provenance tracking
 
-### 🎯 Fallback Architecture
+### Fallback Architecture
 ```
 Target Discovery:
   ChEMBL (Tier A: Measured)
@@ -112,14 +112,14 @@ Target Discovery:
   Return transparent "No data" report
 ```
 
-### 🧬 Confidence Tiers
+### Confidence Tiers
 - **TIER_A** (Green): Measured bioassay data (ChEMBL)
 - **TIER_B** (Yellow): Inferred mechanisms (Open Targets)
 - **TIER_C** (Gray): Predicted interactions (ML/Pharmacophore)
 
 ## Quick Start
 
-### 1️⃣ Backend Setup
+### 1. Backend Setup
 ```bash
 cd backend
 cp .env.example .env          # Copy environment
@@ -130,7 +130,7 @@ uvicorn app.main:app --reload
 
 API available at: http://localhost:8000
 
-### 2️⃣ Frontend Setup
+### 2. Frontend Setup
 ```bash
 cd frontend
 npm install
@@ -139,7 +139,7 @@ npm run dev
 
 UI available at: http://localhost:5173
 
-### 3️⃣ Run Full Stack
+### 3. Run Full Stack
 ```bash
 cd backend
 docker-compose up                    # Starts: API + Redis + Frontend
@@ -220,19 +220,19 @@ See [backend/.env.example](backend/.env.example) for all options.
 
 ## Advanced Features
 
-### 🧪 Pharmacophore-Based Prediction
+### Pharmacophore-Based Prediction
 When all databases fail, predict targets from chemical structure patterns:
 - Identifies drug class (NSAID, Statin, Beta-blocker, etc.)
 - Returns known targets for that class
 - See: [documentation/PHARMACOPHORE_ANALYSIS.md](documentation/PHARMACOPHORE_ANALYSIS.md)
 
-### 🤖 ML Target Prediction
+### ML Target Prediction
 DeepPurpose-like neural network predictions:
 - Analyzes SMILES structure
 - Predicts protein targets
 - See: [documentation/ML_PREDICTION_FEATURE.md](documentation/ML_PREDICTION_FEATURE.md)
 
-### 📋 Batch Analysis
+### Batch Analysis
 Process multiple compounds:
 ```bash
 POST /batch_analyze
@@ -241,7 +241,7 @@ POST /batch_analyze
 }
 ```
 
-### 📥 Data Export
+### Data Export
 ```bash
 # Export results as PDF/Excel
 GET /results/{job_id}/export?format=pdf

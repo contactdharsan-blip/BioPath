@@ -175,7 +175,7 @@ export const MedicationListManager: React.FC<MedicationListManagerProps> = ({
             </Button>
             {medications.length > 0 && (
               <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center flex-1">
-                ✓ {medications.length} medication{medications.length !== 1 ? 's' : ''} saved
+                {medications.length} medication{medications.length !== 1 ? 's' : ''} saved
               </div>
             )}
           </div>

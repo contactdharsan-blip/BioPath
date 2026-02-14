@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card } from '../common/Card';
 import type { TargetEvidence, PathwayMatch } from '../../api/types';
 
@@ -61,6 +61,8 @@ const BODY_SYSTEMS = {
 };
 
 export const BodyDiagram: React.FC<BodyDiagramProps> = ({ targets, pathways, compoundName }) => {
+  const [expandedMechanisms, setExpandedMechanisms] = useState(false);
+
   // Determine affected body systems
   const affectedSystems = useMemo(() => {
     const allText = [
@@ -130,12 +132,22 @@ export const BodyDiagram: React.FC<BodyDiagramProps> = ({ targets, pathways, com
       {/* Related Targets and Pathways */}
       {(targets.length > 0 || pathways.length > 0) && (
         <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-          <h4 className="text-sm font-600 text-gray-900 dark:text-gray-100 mb-3">
-            Related Mechanisms
-          </h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-600 text-gray-900 dark:text-gray-100">
+              Related Mechanisms ({targets.length + pathways.length})
+            </h4>
+            {(targets.length > 5 || pathways.length > 3) && (
+              <button
+                onClick={() => setExpandedMechanisms(!expandedMechanisms)}
+                className="text-xs px-3 py-1 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+              >
+                {expandedMechanisms ? 'Collapse' : 'Expand All'}
+              </button>
+            )}
+          </div>
 
-          <div className="space-y-2 text-sm">
-            {targets.slice(0, 5).map((target) => (
+          <div className={`space-y-2 text-sm ${expandedMechanisms ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+            {(expandedMechanisms ? targets : targets.slice(0, 5)).map((target) => (
               <div key={target.target_id} className="flex items-start gap-2 p-2 rounded bg-gray-50 dark:bg-gray-800">
                 <span className="text-primary-600 dark:text-primary-400 font-bold">→</span>
                 <div className="flex-1">
@@ -149,7 +161,7 @@ export const BodyDiagram: React.FC<BodyDiagramProps> = ({ targets, pathways, com
               </div>
             ))}
 
-            {pathways.slice(0, 3).map((pathway, i) => (
+            {(expandedMechanisms ? pathways : pathways.slice(0, 3)).map((pathway, i) => (
               <div key={i} className="flex items-start gap-2 p-2 rounded bg-gray-50 dark:bg-gray-800">
                 <span className="text-primary-600 dark:text-primary-400 font-bold">▶</span>
                 <div className="flex-1">
@@ -166,9 +178,9 @@ export const BodyDiagram: React.FC<BodyDiagramProps> = ({ targets, pathways, com
             ))}
           </div>
 
-          {(targets.length > 5 || pathways.length > 3) && (
+          {!expandedMechanisms && (targets.length > 5 || pathways.length > 3) && (
             <p className="text-xs text-gray-500 dark:text-gray-500 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-              + {targets.length - 5 + (pathways.length > 3 ? pathways.length - 3 : 0)} more mechanisms
+              Click "Expand All" to see {targets.length - 5 + (pathways.length > 3 ? pathways.length - 3 : 0)} more mechanism{targets.length - 5 + (pathways.length > 3 ? pathways.length - 3 : 0) !== 1 ? 's' : ''}
             </p>
           )}
         </div>

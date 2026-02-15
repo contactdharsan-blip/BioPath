@@ -107,6 +107,19 @@ async def api_info():
     }
 
 
+@app.options("/analyze_sync")
+async def analyze_sync_options():
+    """Handle CORS preflight requests for analyze_sync"""
+    return JSONResponse(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+        }
+    )
+
+
 @app.post("/analyze_sync", response_model=BodyImpactReport)
 async def analyze_sync(ingredient_input: IngredientInput):
     """

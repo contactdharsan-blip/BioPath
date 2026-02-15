@@ -1,0 +1,9 @@
+# GitHub Pages Configuration
+title: BioPath
+description: Chemical-Target-Pathway Analysis Framework
+remote_theme: jekyll/minima
+
+# Exclude from processing
+exclude:
+  - assets/
+  - node_modules/

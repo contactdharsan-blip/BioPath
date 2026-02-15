@@ -15,11 +15,14 @@ from app.config import settings
 from app.models.schemas import (
     IngredientInput,
     BodyImpactReport,
-    AnalysisJob
+    AnalysisJob,
+    SideEffectsResponse,
+    SideEffect
 )
 from app.services.analysis import AnalysisService
 from app.services.plant_identification import plant_identification_service
 from app.services.drug_interaction_service import drug_interaction_service
+from app.services.side_effects_service import side_effects_service
 from app.tasks.celery_tasks import analyze_ingredient_task, celery_app
 from app.clients.reactome import ReactomeClient
 from app.data.plant_compounds import (
@@ -717,6 +720,74 @@ async def get_plant_info(scientific_name: str):
         "traditional_uses": plant.traditional_uses,
         "parts_used": plant.parts_used
     }
+
+
+# ============================================
+# Side Effects API Endpoints
+# ============================================
+
+class SideEffectsRequest(BaseModel):
+    """Request for side effects"""
+    compound_name: str = Field(..., description="Name of the compound")
+    pathways: List[str] = Field(default_factory=list, description="List of affected pathway names")
+    targets: List[str] = Field(default_factory=list, description="List of affected target names")
+
+
+@app.post("/api/side-effects", response_model=SideEffectsResponse)
+async def get_side_effects(request: SideEffectsRequest):
+    """
+    Get side effects for a compound based on affected pathways and targets.
+
+    Uses database mapping to retrieve side effects information sourced from:
+    - FDA Drug Safety Communications
+    - PubMed Central research
+    - DrugBank adverse effects
+    - PharmGKB clinical annotations
+
+    Args:
+        request: SideEffectsRequest with compound name, pathways, and targets
+
+    Returns:
+        SideEffectsResponse with list of potential side effects
+    """
+    try:
+        logger.info(f"Side effects request: {request.compound_name}")
+
+        # Get side effects from pathways and targets
+        side_effects = side_effects_service.get_side_effects_combined(
+            pathway_names=request.pathways,
+            targets=request.targets
+        )
+
+        # Convert SideEffect dataclass objects to Pydantic models
+        side_effects_models = [
+            SideEffect(
+                name=effect.name,
+                description=effect.description,
+                severity=effect.severity,
+                frequency=effect.frequency,
+                body_system=effect.body_system,
+                mechanism_basis=effect.mechanism_basis,
+                management_tips=effect.management_tips,
+                when_to_seek_help=effect.when_to_seek_help,
+                effect_type=effect.effect_type
+            )
+            for effect in side_effects
+        ]
+
+        logger.info(f"Found {len(side_effects_models)} side effects for {request.compound_name}")
+
+        return SideEffectsResponse(
+            compound_name=request.compound_name,
+            side_effects=side_effects_models
+        )
+
+    except Exception as e:
+        logger.error(f"Side effects error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve side effects: {str(e)}"
+        )
 
 
 # ============================================

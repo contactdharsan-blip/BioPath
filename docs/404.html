@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>BioPath</title>
+    <script>
+      var path = window.location.pathname;
+      if (path !== '/BioPath/' && !path.includes('.')) {
+        sessionStorage.redirect = path;
+        window.location.href = '/BioPath/';
+      }
+    </script>
+  </head>
+  <body></body>
+</html>

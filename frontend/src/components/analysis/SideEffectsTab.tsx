@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../common/Card';
 import type { TargetEvidence, PathwayMatch } from '../../api/types';
 import clsx from 'clsx';
@@ -17,354 +17,11 @@ interface SideEffect {
   description: string;
   severity: SeverityLevel;
   frequency: FrequencyLevel;
-  bodySystem: string;
-  mechanismBasis: string;
-  managementTips: string[];
-  whenToSeekHelp?: string;
-}
-
-// Map targets to potential side effects based on mechanism of action
-function getSideEffectsFromTargets(targets: TargetEvidence[], pathways: PathwayMatch[]): SideEffect[] {
-  const effects: SideEffect[] = [];
-  const addedEffects = new Set<string>();
-
-  const addEffect = (effect: SideEffect) => {
-    if (!addedEffects.has(effect.name)) {
-      effects.push(effect);
-      addedEffects.add(effect.name);
-    }
-  };
-
-  for (const target of targets) {
-    const targetLower = target.target_name.toLowerCase();
-
-    // COX inhibitors side effects
-    if (targetLower.includes('cyclooxygenase') || targetLower.includes('prostaglandin') ||
-        target.target_id === 'P23219' || target.target_id === 'P35354') {
-      addEffect({
-        name: 'Gastrointestinal Irritation',
-        description: 'Stomach discomfort, heartburn, or nausea due to reduced protective prostaglandins in the stomach lining.',
-        severity: 'moderate',
-        frequency: 'common',
-        bodySystem: 'Digestive',
-        mechanismBasis: 'COX-1 inhibition reduces gastric mucosal protection',
-        managementTips: [
-          'Take with food or milk',
-          'Use lowest effective dose',
-          'Consider enteric-coated formulations',
-          'Avoid alcohol consumption'
-        ],
-        whenToSeekHelp: 'Black or bloody stools, severe stomach pain, vomiting blood'
-      });
-
-      addEffect({
-        name: 'Increased Bleeding Risk',
-        description: 'Reduced ability for blood to clot due to effects on platelet function.',
-        severity: 'moderate',
-        frequency: 'uncommon',
-        bodySystem: 'Cardiovascular',
-        mechanismBasis: 'COX-1 inhibition reduces thromboxane A2 production in platelets',
-        managementTips: [
-          'Inform healthcare providers before surgery',
-          'Avoid combining with other blood thinners',
-          'Watch for unusual bruising'
-        ],
-        whenToSeekHelp: 'Unusual bleeding, prolonged bleeding from cuts, severe bruising'
-      });
-
-      addEffect({
-        name: 'Kidney Function Changes',
-        description: 'May affect kidney blood flow, especially in those with existing kidney conditions.',
-        severity: 'moderate',
-        frequency: 'uncommon',
-        bodySystem: 'Urinary',
-        mechanismBasis: 'Prostaglandins help maintain renal blood flow',
-        managementTips: [
-          'Stay well hydrated',
-          'Avoid prolonged use',
-          'Regular monitoring if using long-term'
-        ],
-        whenToSeekHelp: 'Decreased urination, swelling in legs/feet, unusual fatigue'
-      });
-
-      addEffect({
-        name: 'Cardiovascular Risk',
-        description: 'Long-term use may slightly increase risk of heart problems in susceptible individuals.',
-        severity: 'serious',
-        frequency: 'rare',
-        bodySystem: 'Cardiovascular',
-        mechanismBasis: 'COX-2 selective inhibition may affect vascular prostacyclin balance',
-        managementTips: [
-          'Use lowest dose for shortest time',
-          'Discuss cardiovascular history with doctor',
-          'Consider alternatives if high risk'
-        ],
-        whenToSeekHelp: 'Chest pain, shortness of breath, sudden weakness on one side'
-      });
-    }
-
-    // Lipoxygenase effects
-    if (targetLower.includes('lipoxygenase') || target.target_id === 'P09917') {
-      addEffect({
-        name: 'Altered Immune Response',
-        description: 'Changes in leukotriene production may affect inflammatory and immune responses.',
-        severity: 'mild',
-        frequency: 'uncommon',
-        bodySystem: 'Immune',
-        mechanismBasis: 'Leukotrienes are important immune signaling molecules',
-        managementTips: [
-          'Monitor for signs of infection',
-          'Report unusual symptoms'
-        ]
-      });
-    }
-
-    // CYP450 effects
-    if (targetLower.includes('cytochrome') || targetLower.includes('cyp')) {
-      addEffect({
-        name: 'Drug Metabolism Changes',
-        description: 'May alter how the liver processes other medications, affecting their effectiveness or safety.',
-        severity: 'moderate',
-        frequency: 'common',
-        bodySystem: 'Hepatic',
-        mechanismBasis: 'CYP450 enzymes metabolize many medications',
-        managementTips: [
-          'Inform all healthcare providers about all medications',
-          'Watch for increased or decreased effects of other drugs',
-          'Consider drug interaction checking'
-        ],
-        whenToSeekHelp: 'Unexpected medication side effects, signs of medication toxicity'
-      });
-    }
-
-    // Kinase effects
-    if (targetLower.includes('kinase')) {
-      addEffect({
-        name: 'Cell Signaling Alterations',
-        description: 'May affect cellular growth and signaling pathways.',
-        severity: 'mild',
-        frequency: 'uncommon',
-        bodySystem: 'Cellular',
-        mechanismBasis: 'Kinases regulate many cellular processes',
-        managementTips: [
-          'Monitor for unusual symptoms',
-          'Follow recommended dosing'
-        ]
-      });
-    }
-
-    // Channel/receptor effects
-    if (targetLower.includes('channel') || targetLower.includes('receptor')) {
-      addEffect({
-        name: 'Nervous System Effects',
-        description: 'May cause mild drowsiness, dizziness, or changes in mood in some individuals.',
-        severity: 'mild',
-        frequency: 'uncommon',
-        bodySystem: 'Nervous',
-        mechanismBasis: 'Ion channels and receptors mediate neural signaling',
-        managementTips: [
-          'Avoid driving if drowsy',
-          'Avoid alcohol',
-          'Start with lower doses'
-        ]
-      });
-    }
-  }
-
-  // Check pathways for additional effects
-  for (const pathway of pathways) {
-    const pathwayLower = pathway.pathway_name.toLowerCase();
-
-    // Coagulation and platelet pathways
-    if (pathwayLower.includes('platelet') || pathwayLower.includes('coagulation')) {
-      addEffect({
-        name: 'Bleeding Tendency',
-        description: 'Affects blood clotting mechanisms, may increase bleeding risk.',
-        severity: 'moderate',
-        frequency: 'uncommon',
-        bodySystem: 'Hematologic',
-        mechanismBasis: 'Pathway involvement in coagulation cascade',
-        managementTips: [
-          'Avoid with anticoagulants unless advised',
-          'Inform surgeons and dentists',
-          'Watch for unusual bleeding'
-        ],
-        whenToSeekHelp: 'Prolonged bleeding, blood in urine or stool'
-      });
-    }
-
-    // Inflammation pathways
-    if (pathwayLower.includes('inflammat') || pathwayLower.includes('nfkb') || pathwayLower.includes('tnf')) {
-      addEffect({
-        name: 'Immunosuppression',
-        description: 'May suppress inflammatory and immune responses, affecting ability to fight infections.',
-        severity: 'moderate',
-        frequency: 'uncommon',
-        bodySystem: 'Immune',
-        mechanismBasis: 'Inhibition of inflammatory signaling pathways',
-        managementTips: [
-          'Avoid live vaccines during use',
-          'Monitor for signs of infection',
-          'Maintain good hygiene practices'
-        ],
-        whenToSeekHelp: 'Persistent fever, unusual infections, delayed wound healing'
-      });
-    }
-
-    // Histamine and allergic pathways
-    if (pathwayLower.includes('histamine') || pathwayLower.includes('allergic')) {
-      addEffect({
-        name: 'Allergic Reactions',
-        description: 'Some individuals may experience allergic responses.',
-        severity: 'moderate',
-        frequency: 'rare',
-        bodySystem: 'Immune',
-        mechanismBasis: 'Individual sensitivity and immune pathway involvement',
-        managementTips: [
-          'Start with small dose to test tolerance',
-          'Have antihistamines available',
-          'Know signs of allergic reaction'
-        ],
-        whenToSeekHelp: 'Difficulty breathing, swelling of face/throat, severe rash'
-      });
-    }
-
-    // Serotonin and dopamine pathways
-    if (pathwayLower.includes('serotonin') || pathwayLower.includes('dopamine') || pathwayLower.includes('monoamine')) {
-      addEffect({
-        name: 'Neurochemical Effects',
-        description: 'May affect mood, sleep patterns, and emotional well-being.',
-        severity: 'mild',
-        frequency: 'uncommon',
-        bodySystem: 'Nervous',
-        mechanismBasis: 'Alterations in neurotransmitter levels and signaling',
-        managementTips: [
-          'Monitor mood and emotional changes',
-          'Maintain regular sleep schedule',
-          'Avoid sudden discontinuation'
-        ],
-        whenToSeekHelp: 'Severe mood changes, suicidal thoughts, persistent insomnia'
-      });
-    }
-
-    // Glucose and metabolic pathways
-    if (pathwayLower.includes('glucose') || pathwayLower.includes('insulin') || pathwayLower.includes('metabolis')) {
-      addEffect({
-        name: 'Metabolic Changes',
-        description: 'May affect blood glucose levels and overall metabolic function.',
-        severity: 'moderate',
-        frequency: 'uncommon',
-        bodySystem: 'Endocrine',
-        mechanismBasis: 'Pathway involvement in glucose homeostasis and metabolic regulation',
-        managementTips: [
-          'Monitor blood glucose if diabetic',
-          'Maintain consistent meal timing',
-          'Report significant weight changes'
-        ],
-        whenToSeekHelp: 'Extreme hunger/thirst, unusual weight changes, blurred vision'
-      });
-    }
-
-    // Cardiovascular and vascular pathways
-    if (pathwayLower.includes('hypertens') || pathwayLower.includes('vascular') || pathwayLower.includes('cardiovasc')) {
-      addEffect({
-        name: 'Blood Pressure Changes',
-        description: 'May affect blood pressure regulation.',
-        severity: 'moderate',
-        frequency: 'uncommon',
-        bodySystem: 'Cardiovascular',
-        mechanismBasis: 'Vascular tone and blood pressure regulation pathway involvement',
-        managementTips: [
-          'Monitor blood pressure regularly',
-          'Report significant changes to healthcare provider',
-          'Limit salt intake'
-        ],
-        whenToSeekHelp: 'Severe headaches, chest pain, dizziness, shortness of breath'
-      });
-    }
-
-    // Renal and electrolyte pathways
-    if (pathwayLower.includes('renal') || pathwayLower.includes('electrolyte') || pathwayLower.includes('sodium') || pathwayLower.includes('potassium')) {
-      addEffect({
-        name: 'Electrolyte Imbalance',
-        description: 'May affect kidney function and electrolyte balance.',
-        severity: 'moderate',
-        frequency: 'uncommon',
-        bodySystem: 'Urinary',
-        mechanismBasis: 'Renal function and electrolyte handling pathway involvement',
-        managementTips: [
-          'Monitor urine output',
-          'Maintain proper hydration',
-          'Periodic electrolyte monitoring if long-term use'
-        ],
-        whenToSeekHelp: 'Decreased urination, muscle weakness, irregular heartbeat'
-      });
-    }
-
-    // Hepatic and detoxification pathways
-    if (pathwayLower.includes('hepatic') || pathwayLower.includes('liver') || pathwayLower.includes('glutathione') || pathwayLower.includes('detox')) {
-      addEffect({
-        name: 'Liver Function Changes',
-        description: 'May affect liver function and detoxification capacity.',
-        severity: 'moderate',
-        frequency: 'uncommon',
-        bodySystem: 'Hepatic',
-        mechanismBasis: 'Hepatic metabolism and detoxification pathway involvement',
-        managementTips: [
-          'Avoid alcohol consumption',
-          'Monitor liver enzymes if recommended',
-          'Report jaundice or dark urine'
-        ],
-        whenToSeekHelp: 'Yellowing of skin/eyes, dark urine, light-colored stools, abdominal pain'
-      });
-    }
-
-    // Bone and mineral pathways
-    if (pathwayLower.includes('bone') || pathwayLower.includes('calcium') || pathwayLower.includes('mineral') || pathwayLower.includes('osteo')) {
-      addEffect({
-        name: 'Bone and Mineral Changes',
-        description: 'May affect bone density and mineral metabolism.',
-        severity: 'mild',
-        frequency: 'uncommon',
-        bodySystem: 'Musculoskeletal',
-        mechanismBasis: 'Bone remodeling and mineral metabolism pathway involvement',
-        managementTips: [
-          'Ensure adequate calcium and vitamin D intake',
-          'Weight-bearing exercise',
-          'Bone density monitoring if long-term use'
-        ],
-        whenToSeekHelp: 'Severe bone pain, frequent fractures, muscle weakness'
-      });
-    }
-
-    // Hypersensitivity and autoimmune pathways
-    if (pathwayLower.includes('hypersensit') || pathwayLower.includes('autoimmune') || pathwayLower.includes('immune response')) {
-      addEffect({
-        name: 'Immune System Dysregulation',
-        description: 'May trigger or exacerbate autoimmune or hypersensitivity reactions.',
-        severity: 'serious',
-        frequency: 'rare',
-        bodySystem: 'Immune',
-        mechanismBasis: 'Autoimmune or hypersensitivity pathway activation',
-        managementTips: [
-          'Monitor for unusual symptoms',
-          'Report joint pain, persistent fatigue',
-          'Inform healthcare provider of autoimmune history'
-        ],
-        whenToSeekHelp: 'Joint pain with swelling, persistent fever, widespread rash, severe fatigue'
-      });
-    }
-  }
-
-  // Sort by severity then frequency
-  const severityOrder: Record<SeverityLevel, number> = { serious: 0, moderate: 1, mild: 2 };
-  const frequencyOrder: Record<FrequencyLevel, number> = { common: 0, uncommon: 1, rare: 2 };
-
-  return effects.sort((a, b) => {
-    const sevDiff = severityOrder[a.severity] - severityOrder[b.severity];
-    if (sevDiff !== 0) return sevDiff;
-    return frequencyOrder[a.frequency] - frequencyOrder[b.frequency];
-  });
+  body_system: string;
+  mechanism_basis: string;
+  management_tips: string[];
+  when_to_seek_help?: string;
+  effect_type: 'positive' | 'negative';
 }
 
 const SeverityBadge: React.FC<{ severity: SeverityLevel }> = ({ severity }) => {
@@ -400,8 +57,44 @@ const FrequencyBadge: React.FC<{ frequency: FrequencyLevel }> = ({ frequency }) 
 export const SideEffectsTab: React.FC<SideEffectsTabProps> = ({ targets, pathways, compoundName }) => {
   const [expandedEffect, setExpandedEffect] = useState<number | null>(null);
   const [filterSeverity, setFilterSeverity] = useState<SeverityLevel | 'all'>('all');
+  const [sideEffects, setSideEffects] = useState<SideEffect[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const sideEffects = getSideEffectsFromTargets(targets, pathways);
+  useEffect(() => {
+    const fetchSideEffects = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch('/api/side-effects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            compound_name: compoundName,
+            pathways: pathways.map(p => p.pathway_name),
+            targets: targets.map(t => t.target_name),
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch side effects: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setSideEffects(data.side_effects || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch side effects');
+        setSideEffects([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSideEffects();
+  }, [compoundName, pathways, targets]);
 
   const filteredEffects = filterSeverity === 'all'
     ? sideEffects
@@ -412,6 +105,30 @@ export const SideEffectsTab: React.FC<SideEffectsTabProps> = ({ targets, pathway
     moderate: sideEffects.filter(e => e.severity === 'moderate').length,
     mild: sideEffects.filter(e => e.severity === 'mild').length,
   };
+
+  if (loading) {
+    return (
+      <Card className="animate-slide-up">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading side effects...</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="animate-slide-up">
+        <div className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-red-900 dark:text-red-300 font-semibold">Error Loading Side Effects</p>
+          <p className="text-red-800 dark:text-red-400 text-sm mt-2">{error}</p>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="animate-slide-up">
@@ -424,7 +141,7 @@ export const SideEffectsTab: React.FC<SideEffectsTabProps> = ({ targets, pathway
             Potential Side Effects
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Based on {compoundName}'s mechanism of action
+            Based on {compoundName}'s affected pathways and targets
           </p>
         </div>
 
@@ -525,8 +242,8 @@ export const SideEffectsTab: React.FC<SideEffectsTabProps> = ({ targets, pathway
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-semibold text-gray-900 dark:text-white">{effect.name}</h4>
-                      <SeverityBadge severity={effect.severity} />
-                      <FrequencyBadge frequency={effect.frequency} />
+                      <SeverityBadge severity={effect.severity as SeverityLevel} />
+                      <FrequencyBadge frequency={effect.frequency as FrequencyLevel} />
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">{effect.description}</p>
                   </div>
@@ -545,16 +262,16 @@ export const SideEffectsTab: React.FC<SideEffectsTabProps> = ({ targets, pathway
                     {/* Body System & Mechanism */}
                     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
                       <h5 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">BODY SYSTEM</h5>
-                      <p className="text-sm text-gray-900 dark:text-white">{effect.bodySystem}</p>
+                      <p className="text-sm text-gray-900 dark:text-white">{effect.body_system}</p>
                       <h5 className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-3 mb-2">MECHANISM BASIS</h5>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{effect.mechanismBasis}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{effect.mechanism_basis}</p>
                     </div>
 
                     {/* Management Tips */}
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
                       <h5 className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">MANAGEMENT TIPS</h5>
                       <ul className="space-y-1">
-                        {effect.managementTips.map((tip, i) => (
+                        {effect.management_tips.map((tip, i) => (
                           <li key={i} className="text-sm text-blue-800 dark:text-blue-200 flex items-start gap-2">
                             <span className="text-blue-500 mt-1">•</span>
                             {tip}
@@ -565,7 +282,7 @@ export const SideEffectsTab: React.FC<SideEffectsTabProps> = ({ targets, pathway
                   </div>
 
                   {/* When to Seek Help */}
-                  {effect.whenToSeekHelp && (
+                  {effect.when_to_seek_help && (
                     <div className="mt-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
                       <h5 className="text-xs font-semibold text-red-700 dark:text-red-300 mb-1 flex items-center gap-1">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -573,7 +290,7 @@ export const SideEffectsTab: React.FC<SideEffectsTabProps> = ({ targets, pathway
                         </svg>
                         WHEN TO SEEK MEDICAL HELP
                       </h5>
-                      <p className="text-sm text-red-800 dark:text-red-200">{effect.whenToSeekHelp}</p>
+                      <p className="text-sm text-red-800 dark:text-red-200">{effect.when_to_seek_help}</p>
                     </div>
                   )}
                 </div>

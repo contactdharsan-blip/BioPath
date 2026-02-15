@@ -204,6 +204,25 @@ class BodyImpactReport(BaseModel):
         }
 
 
+class SideEffect(BaseModel):
+    """Side effect information"""
+    name: str
+    description: str
+    severity: str  # "mild", "moderate", "serious"
+    frequency: str  # "common", "uncommon", "rare"
+    body_system: str
+    mechanism_basis: str
+    management_tips: List[str]
+    when_to_seek_help: Optional[str] = None
+    effect_type: str = "negative"  # "positive" or "negative"
+
+
+class SideEffectsResponse(BaseModel):
+    """Response containing side effects for a compound"""
+    compound_name: str
+    side_effects: List[SideEffect]
+
+
 class AnalysisJob(BaseModel):
     """Analysis job status"""
     job_id: str

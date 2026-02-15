@@ -56,7 +56,6 @@ remote_theme: jekyll/minima
 
 # Exclude from processing
 exclude:
-  - assets/
   - node_modules/
 `;
 fs.writeFileSync(path.join(docsDir, '_config.yml'), configContent);

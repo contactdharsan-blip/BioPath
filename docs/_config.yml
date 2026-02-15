@@ -5,4 +5,5 @@ remote_theme: jekyll/minima
 
 # Exclude from processing
 exclude:
+  - assets/
   - node_modules/

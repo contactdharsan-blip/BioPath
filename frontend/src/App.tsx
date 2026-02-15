@@ -10,7 +10,6 @@ import { BodyDiagram } from './components/analysis/BodyDiagram';
 import { MoleculeViewer } from './components/analysis/MoleculeViewer';
 import { SideEffectsTab } from './components/analysis/SideEffectsTab';
 import { DrugInteractionsTab } from './components/analysis/DrugInteractionsTab';
-import { PersonalizedInteractionsTab } from './components/analysis/PersonalizedInteractionsTab';
 import { MedicationListManager, type Medication } from './components/medications/MedicationListManager';
 import { LoadingOverlay } from './components/common/LoadingOverlay';
 import { LicensesModal } from './components/common/LicensesModal';
@@ -21,7 +20,7 @@ import clsx from 'clsx';
 import './apple-theme.css';
 import './App.css';
 
-type TabId = 'overview' | 'body-impact' | '3d-structure' | 'targets' | 'pathways' | 'side-effects' | 'drug-interactions' | 'my-medications';
+type TabId = 'overview' | 'body-impact' | '3d-structure' | 'targets' | 'pathways' | 'side-effects' | 'drug-interactions';
 type AnalysisMode = 'compound' | 'plant' | 'medication-tracker';
 
 interface Tab {
@@ -150,15 +149,6 @@ function App() {
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-        </svg>
-      ),
-    },
-    {
-      id: 'my-medications',
-      label: 'My Medications',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
     },
@@ -337,12 +327,6 @@ function App() {
                   <DrugInteractionsTab
                     targets={result.known_targets}
                     pathways={result.pathways}
-                    compoundName={result.ingredient_name}
-                  />
-                )}
-
-                {activeTab === 'my-medications' && (
-                  <PersonalizedInteractionsTab
                     compoundName={result.ingredient_name}
                     personalized_interactions={result.personalized_interactions || []}
                   />

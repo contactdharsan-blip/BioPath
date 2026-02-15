@@ -175,6 +175,7 @@ function getSideEffectsFromTargets(targets: TargetEvidence[], pathways: PathwayM
   for (const pathway of pathways) {
     const pathwayLower = pathway.pathway_name.toLowerCase();
 
+    // Coagulation and platelet pathways
     if (pathwayLower.includes('platelet') || pathwayLower.includes('coagulation')) {
       addEffect({
         name: 'Bleeding Tendency',
@@ -192,6 +193,25 @@ function getSideEffectsFromTargets(targets: TargetEvidence[], pathways: PathwayM
       });
     }
 
+    // Inflammation pathways
+    if (pathwayLower.includes('inflammat') || pathwayLower.includes('nfkb') || pathwayLower.includes('tnf')) {
+      addEffect({
+        name: 'Immunosuppression',
+        description: 'May suppress inflammatory and immune responses, affecting ability to fight infections.',
+        severity: 'moderate',
+        frequency: 'uncommon',
+        bodySystem: 'Immune',
+        mechanismBasis: 'Inhibition of inflammatory signaling pathways',
+        managementTips: [
+          'Avoid live vaccines during use',
+          'Monitor for signs of infection',
+          'Maintain good hygiene practices'
+        ],
+        whenToSeekHelp: 'Persistent fever, unusual infections, delayed wound healing'
+      });
+    }
+
+    // Histamine and allergic pathways
     if (pathwayLower.includes('histamine') || pathwayLower.includes('allergic')) {
       addEffect({
         name: 'Allergic Reactions',
@@ -206,6 +226,132 @@ function getSideEffectsFromTargets(targets: TargetEvidence[], pathways: PathwayM
           'Know signs of allergic reaction'
         ],
         whenToSeekHelp: 'Difficulty breathing, swelling of face/throat, severe rash'
+      });
+    }
+
+    // Serotonin and dopamine pathways
+    if (pathwayLower.includes('serotonin') || pathwayLower.includes('dopamine') || pathwayLower.includes('monoamine')) {
+      addEffect({
+        name: 'Neurochemical Effects',
+        description: 'May affect mood, sleep patterns, and emotional well-being.',
+        severity: 'mild',
+        frequency: 'uncommon',
+        bodySystem: 'Nervous',
+        mechanismBasis: 'Alterations in neurotransmitter levels and signaling',
+        managementTips: [
+          'Monitor mood and emotional changes',
+          'Maintain regular sleep schedule',
+          'Avoid sudden discontinuation'
+        ],
+        whenToSeekHelp: 'Severe mood changes, suicidal thoughts, persistent insomnia'
+      });
+    }
+
+    // Glucose and metabolic pathways
+    if (pathwayLower.includes('glucose') || pathwayLower.includes('insulin') || pathwayLower.includes('metabolis')) {
+      addEffect({
+        name: 'Metabolic Changes',
+        description: 'May affect blood glucose levels and overall metabolic function.',
+        severity: 'moderate',
+        frequency: 'uncommon',
+        bodySystem: 'Endocrine',
+        mechanismBasis: 'Pathway involvement in glucose homeostasis and metabolic regulation',
+        managementTips: [
+          'Monitor blood glucose if diabetic',
+          'Maintain consistent meal timing',
+          'Report significant weight changes'
+        ],
+        whenToSeekHelp: 'Extreme hunger/thirst, unusual weight changes, blurred vision'
+      });
+    }
+
+    // Cardiovascular and vascular pathways
+    if (pathwayLower.includes('hypertens') || pathwayLower.includes('vascular') || pathwayLower.includes('cardiovasc')) {
+      addEffect({
+        name: 'Blood Pressure Changes',
+        description: 'May affect blood pressure regulation.',
+        severity: 'moderate',
+        frequency: 'uncommon',
+        bodySystem: 'Cardiovascular',
+        mechanismBasis: 'Vascular tone and blood pressure regulation pathway involvement',
+        managementTips: [
+          'Monitor blood pressure regularly',
+          'Report significant changes to healthcare provider',
+          'Limit salt intake'
+        ],
+        whenToSeekHelp: 'Severe headaches, chest pain, dizziness, shortness of breath'
+      });
+    }
+
+    // Renal and electrolyte pathways
+    if (pathwayLower.includes('renal') || pathwayLower.includes('electrolyte') || pathwayLower.includes('sodium') || pathwayLower.includes('potassium')) {
+      addEffect({
+        name: 'Electrolyte Imbalance',
+        description: 'May affect kidney function and electrolyte balance.',
+        severity: 'moderate',
+        frequency: 'uncommon',
+        bodySystem: 'Urinary',
+        mechanismBasis: 'Renal function and electrolyte handling pathway involvement',
+        managementTips: [
+          'Monitor urine output',
+          'Maintain proper hydration',
+          'Periodic electrolyte monitoring if long-term use'
+        ],
+        whenToSeekHelp: 'Decreased urination, muscle weakness, irregular heartbeat'
+      });
+    }
+
+    // Hepatic and detoxification pathways
+    if (pathwayLower.includes('hepatic') || pathwayLower.includes('liver') || pathwayLower.includes('glutathione') || pathwayLower.includes('detox')) {
+      addEffect({
+        name: 'Liver Function Changes',
+        description: 'May affect liver function and detoxification capacity.',
+        severity: 'moderate',
+        frequency: 'uncommon',
+        bodySystem: 'Hepatic',
+        mechanismBasis: 'Hepatic metabolism and detoxification pathway involvement',
+        managementTips: [
+          'Avoid alcohol consumption',
+          'Monitor liver enzymes if recommended',
+          'Report jaundice or dark urine'
+        ],
+        whenToSeekHelp: 'Yellowing of skin/eyes, dark urine, light-colored stools, abdominal pain'
+      });
+    }
+
+    // Bone and mineral pathways
+    if (pathwayLower.includes('bone') || pathwayLower.includes('calcium') || pathwayLower.includes('mineral') || pathwayLower.includes('osteo')) {
+      addEffect({
+        name: 'Bone and Mineral Changes',
+        description: 'May affect bone density and mineral metabolism.',
+        severity: 'mild',
+        frequency: 'uncommon',
+        bodySystem: 'Musculoskeletal',
+        mechanismBasis: 'Bone remodeling and mineral metabolism pathway involvement',
+        managementTips: [
+          'Ensure adequate calcium and vitamin D intake',
+          'Weight-bearing exercise',
+          'Bone density monitoring if long-term use'
+        ],
+        whenToSeekHelp: 'Severe bone pain, frequent fractures, muscle weakness'
+      });
+    }
+
+    // Hypersensitivity and autoimmune pathways
+    if (pathwayLower.includes('hypersensit') || pathwayLower.includes('autoimmune') || pathwayLower.includes('immune response')) {
+      addEffect({
+        name: 'Immune System Dysregulation',
+        description: 'May trigger or exacerbate autoimmune or hypersensitivity reactions.',
+        severity: 'serious',
+        frequency: 'rare',
+        bodySystem: 'Immune',
+        mechanismBasis: 'Autoimmune or hypersensitivity pathway activation',
+        managementTips: [
+          'Monitor for unusual symptoms',
+          'Report joint pain, persistent fatigue',
+          'Inform healthcare provider of autoimmune history'
+        ],
+        whenToSeekHelp: 'Joint pain with swelling, persistent fever, widespread rash, severe fatigue'
       });
     }
   }

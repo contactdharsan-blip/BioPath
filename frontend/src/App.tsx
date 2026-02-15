@@ -247,9 +247,6 @@ function App() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Summary always visible */}
-              <SummaryCard report={result} />
-
               {/* Tab Navigation */}
               <div className="border-b border-gray-200 dark:border-gray-700">
                 <nav className="flex space-x-4 overflow-x-auto" aria-label="Tabs">
@@ -280,6 +277,9 @@ function App() {
                   ))}
                 </nav>
               </div>
+
+              {/* Summary Cards - Below Tabs */}
+              <SummaryCard report={result} />
 
               {/* Tab Content */}
               <div className="mt-6">

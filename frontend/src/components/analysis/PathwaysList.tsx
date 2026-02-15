@@ -177,9 +177,14 @@ const PathwayDetail: React.FC<{ pathway: PathwayMatch; isExpanded: boolean }> = 
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
             Pathway Participants ({reactomeData.total_participants} proteins)
+            {reactomeData.has_more_participants && (
+              <span className="text-xs font-normal text-gray-500 dark:text-gray-400">
+                ({reactomeData.participants.length} shown, {reactomeData.total_participants - reactomeData.participants.length} more available)
+              </span>
+            )}
           </h5>
           <div className="flex flex-wrap gap-1.5">
-            {reactomeData.participants.map((participant, idx) => (
+            {reactomeData.participants.map((participant: string, idx: number) => (
               <span
                 key={idx}
                 className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs font-mono"
@@ -187,11 +192,6 @@ const PathwayDetail: React.FC<{ pathway: PathwayMatch; isExpanded: boolean }> = 
                 {participant}
               </span>
             ))}
-            {reactomeData.has_more_participants && (
-              <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded text-xs">
-                +{reactomeData.total_participants - reactomeData.participants.length} more
-              </span>
-            )}
           </div>
         </div>
       )}

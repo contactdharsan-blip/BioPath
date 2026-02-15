@@ -1,7 +1,6 @@
 """FastAPI application for BioPath"""
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, File, UploadFile, Form, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -50,35 +49,30 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS middleware - must be added before routes
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=".*",
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-)
-
-
-# Custom middleware to ensure CORS headers are always sent
+# Custom middleware to handle CORS
 @app.middleware("http")
-async def cors_headers_middleware(request: Request, call_next):
-    """Add CORS headers to all responses"""
+async def cors_middleware(request: Request, call_next):
+    """Handle CORS for all requests"""
+    # Handle preflight OPTIONS requests
     if request.method == "OPTIONS":
         return Response(
             status_code=200,
             headers={
                 "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type, Authorization",
-                "Access-Control-Max-Age": "3600",
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Max-Age": "600",
             },
         )
 
+    # Process the request
     response = await call_next(request)
+
+    # Add CORS headers to response
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+
     return response
 
 
@@ -128,19 +122,6 @@ async def api_info():
             "curl_plant_upload": 'curl -X POST "http://localhost:8000/identify_plant/upload" -F "file=@plant_photo.jpg" -F "organs=leaf"'
         }
     }
-
-
-@app.options("/analyze_sync")
-async def analyze_sync_options():
-    """Handle CORS preflight requests for analyze_sync"""
-    return JSONResponse(
-        status_code=200,
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-        }
-    )
 
 
 @app.post("/analyze_sync", response_model=BodyImpactReport)

@@ -11,7 +11,7 @@ interface AnalysisFormProps {
 
 export const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, isLoading = false }) => {
   const [ingredientName, setIngredientName] = useState('');
-  const [enablePredictions, setEnablePredictions] = useState(false);
+  const enablePredictions = true;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,22 +57,6 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, isLoading 
           </p>
         </div>
 
-        <div className="flex items-center">
-          <input
-            id="predictions"
-            type="checkbox"
-            checked={enablePredictions}
-            onChange={(e) => setEnablePredictions(e.target.checked)}
-            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-          />
-          <label htmlFor="predictions" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-            Enable predictions (computational docking/ML)
-            <span className="block text-xs text-gray-500 dark:text-gray-400">
-              Includes predicted targets (lower confidence, longer analysis time)
-            </span>
-          </label>
-        </div>
-
         <div className="flex gap-3">
           <Button
             type="submit"
@@ -89,10 +73,7 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, isLoading 
               type="button"
               variant="outline"
               size="lg"
-              onClick={() => {
-                setIngredientName('');
-                setEnablePredictions(false);
-              }}
+              onClick={() => setIngredientName('')}
             >
               Clear
             </Button>

@@ -22,7 +22,16 @@ from app.services.analysis import AnalysisService
 from app.services.plant_identification import plant_identification_service
 from app.services.drug_interaction_service import drug_interaction_service
 from app.services.side_effects_service import side_effects_service
-from app.tasks.celery_tasks import analyze_ingredient_task, celery_app
+
+# Try to import Celery, but don't fail if it's unavailable
+try:
+    from app.tasks.celery_tasks import analyze_ingredient_task, celery_app
+except Exception as e:
+    logger_temp = logging.getLogger(__name__)
+    logger_temp.warning(f"Could not import Celery: {e}. Async tasks will be unavailable.")
+    analyze_ingredient_task = None
+    celery_app = None
+
 from app.clients.reactome import ReactomeClient
 from app.data.plant_compounds import (
     get_plant_compounds,
@@ -180,6 +189,13 @@ async def analyze_async(ingredient_input: IngredientInput):
         AnalyzeResponse with job_id
     """
     try:
+        # Check if Celery is available
+        if not celery_app or not analyze_ingredient_task:
+            raise HTTPException(
+                status_code=503,
+                detail="Async analysis not available. Use /analyze_sync for synchronous analysis."
+            )
+
         # Generate job ID
         job_id = str(uuid.uuid4())
 
@@ -228,6 +244,13 @@ async def get_results(job_id: str):
         AnalysisJob with status and results (if complete)
     """
     try:
+        # Check if Celery is available
+        if not celery_app:
+            raise HTTPException(
+                status_code=503,
+                detail="Async analysis not available."
+            )
+
         # Check if job exists
         if job_id not in jobs_store:
             raise HTTPException(

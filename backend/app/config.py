@@ -12,12 +12,13 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = False
 
-    # Redis
+    # Redis (optional - can be disabled if not available)
     redis_url: str = "redis://localhost:6379/0"
+    redis_enabled: bool = False  # Disabled by default for Railway compatibility
 
-    # Celery
-    celery_broker_url: str = "redis://localhost:6379/0"
-    celery_result_backend: str = "redis://localhost:6379/0"
+    # Celery (uses in-memory backend if Redis not available)
+    celery_broker_url: str = "memory://"
+    celery_result_backend: str = "cache+memory://"
     celery_task_time_limit: int = 600  # 10 minutes
 
     # Cache settings

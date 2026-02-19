@@ -4,6 +4,7 @@ import hashlib
 from typing import Any, Optional, List, Dict
 from diskcache import Cache
 import logging
+from pathlib import Path
 
 from app.config import settings
 
@@ -14,8 +15,17 @@ class CacheService:
     """Disk-based caching service with TTL support"""
 
     def __init__(self):
-        self.cache = Cache(settings.disk_cache_dir)
         self.ttl = settings.cache_ttl
+        self.cache = None
+        try:
+            # Create cache directory if it doesn't exist
+            cache_dir = Path(settings.disk_cache_dir)
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            self.cache = Cache(settings.disk_cache_dir)
+            logger.info(f"Cache initialized at {settings.disk_cache_dir}")
+        except Exception as e:
+            logger.warning(f"Failed to initialize disk cache: {e}. Using in-memory cache (data not persisted).")
+            self.cache = None  # Will use in-memory fallback
 
     def _generate_key(self, prefix: str, identifier: str) -> str:
         """Generate cache key from prefix and identifier"""
@@ -35,6 +45,9 @@ class CacheService:
         Returns:
             Cached value or None if not found/expired
         """
+        if not self.cache:
+            return None
+
         key = self._generate_key(prefix, identifier)
         try:
             value = self.cache.get(key)
@@ -60,6 +73,9 @@ class CacheService:
         Returns:
             True if successful
         """
+        if not self.cache:
+            return False
+
         key = self._generate_key(prefix, identifier)
         expire_time = ttl if ttl is not None else self.ttl
 
@@ -73,6 +89,9 @@ class CacheService:
 
     def delete(self, prefix: str, identifier: str) -> bool:
         """Delete cached value"""
+        if not self.cache:
+            return False
+
         key = self._generate_key(prefix, identifier)
         try:
             return self.cache.delete(key)
@@ -82,6 +101,9 @@ class CacheService:
 
     def clear_all(self) -> None:
         """Clear entire cache"""
+        if not self.cache:
+            return
+
         try:
             self.cache.clear()
             logger.info("Cache cleared")

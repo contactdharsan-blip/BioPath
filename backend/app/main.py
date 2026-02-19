@@ -961,14 +961,22 @@ async def global_exception_handler(request, exc):
 # Serve static frontend files
 STATIC_DIR = Path(__file__).parent.parent / "static"
 
-if STATIC_DIR.exists():
-    # Serve static assets (JS, CSS, images)
-    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+# Always try to mount assets, even if directory might not exist initially
+try:
+    if (STATIC_DIR / "assets").exists():
+        app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+except Exception as e:
+    logger.warning(f"Could not mount static assets: {e}")
 
-    @app.get("/")
-    async def serve_frontend():
-        """Serve the React frontend"""
-        return FileResponse(STATIC_DIR / "index.html")
+@app.get("/")
+async def serve_frontend():
+    """Serve the React frontend"""
+    index_path = STATIC_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    else:
+        logger.error(f"index.html not found at {index_path}")
+        raise HTTPException(status_code=404, detail="Frontend not built")
 
     # Catch-all for SPA routing (must be after API routes)
     @app.get("/{full_path:path}")

@@ -10,7 +10,7 @@ httpx==0.26.0
 requests==2.31.0
 
 # Cheminformatics & Machine Learning
-rdkit==2023.9.4
+# rdkit==2023.9.4  # Removed: Causes build timeout on Railway. Gracefully disabled in code via try/except
 
 # Deep Learning (Optional - for DeepPurpose/DeepChem ML predictions)
 # Note: These are optional. Install only if you want trained ML models

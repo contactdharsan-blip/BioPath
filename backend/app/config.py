@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     # Cache settings
     cache_ttl: int = 86400  # 24 hours
-    disk_cache_dir: str = "./cache"
+    disk_cache_dir: str = "/tmp/biopath_cache"  # Use /tmp for Railway compatibility
 
     # API rate limiting (requests per second)
     pubchem_rate_limit: float = 5.0  # PubChem allows 5 req/sec
@@ -41,7 +41,7 @@ class Settings(BaseSettings):
 
     # ML-based target prediction fallback (DeepPurpose-like)
     # Predicts targets when ChEMBL has no data based on chemical structure
-    enable_ml_target_prediction: bool = True
+    enable_ml_target_prediction: bool = False  # Disabled by default for Railway
 
     # Pharmacophore-based target prediction fallback
     # Analyzes functional groups/drug classes to predict targets and pathways
@@ -50,10 +50,10 @@ class Settings(BaseSettings):
 
     # Deep Learning Model Configuration (DeepPurpose/DeepChem)
     # Use trained neural networks for 70-85% accurate target prediction
-    enable_deeplearning_prediction: bool = True
+    enable_deeplearning_prediction: bool = False  # Disabled by default for Railway (requires GPU/large models)
     deeplearning_model_type: str = "SMILES_GCN_CNN"  # SMILES_GCN_CNN or SMILES_Transformer
-    deeplearning_model_path: str = "./models/deepchem"  # Path to pretrained weights
-    deeplearning_use_gpu: bool = True  # Use GPU if available (10x faster)
+    deeplearning_model_path: str = "/tmp/biopath_models"  # Use /tmp for Railway compatibility
+    deeplearning_use_gpu: bool = False  # Disabled for Railway (no GPU available)
 
     # Retry configuration
     max_retries: int = 3

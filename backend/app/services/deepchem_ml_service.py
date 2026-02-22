@@ -294,7 +294,7 @@ class DeepPurposeMLService:
             logger.error(f"Error in DeepPurpose prediction for {compound_name}: {e}")
             return []
 
-    def _tokenize_smiles(self, smiles: str) -> Optional[np.ndarray]:
+    def _tokenize_smiles(self, smiles: str) -> Optional["np.ndarray"]:
         """Convert SMILES to numerical tokens for model input"""
         try:
             # SMILES character set
@@ -334,7 +334,7 @@ class DeepPurposeMLService:
             logger.error(f"Error tokenizing SMILES: {e}")
             return None
 
-    def _get_protein_tokens(self, target_id: str, gene_id: str) -> np.ndarray:
+    def _get_protein_tokens(self, target_id: str, gene_id: str) -> "np.ndarray":
         """Get protein encoding (simplified for demonstration)"""
         # In production, would use actual protein sequences and embeddings
         # For now, use hash-based pseudo-encoding

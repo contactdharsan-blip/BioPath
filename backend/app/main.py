@@ -796,7 +796,7 @@ async def get_side_effects(request: SideEffectsRequest):
         # Get side effects from pathways and targets
         side_effects = side_effects_service.get_side_effects_combined(
             pathway_names=request.pathways,
-            targets=request.targets
+            target_names=request.targets
         )
 
         # Convert SideEffect dataclass objects to Pydantic models

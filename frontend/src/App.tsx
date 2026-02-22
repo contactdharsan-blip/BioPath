@@ -226,6 +226,50 @@ function App() {
 
   return (
     <div className="min-h-screen app-bg relative">
+      {/* SVG Filters for Liquid Glass Background Warping */}
+      <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
+        <defs>
+          {/* Subtle warp for small glass elements (indicators, pills) */}
+          <filter id="glass-warp" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.015 0.02"
+              numOctaves={3}
+              seed={2}
+              result="warp"
+            >
+              <animate attributeName="seed" values="2;3;5;3;2" dur="10s" repeatCount="indefinite" />
+            </feTurbulence>
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="warp"
+              scale={4}
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+          {/* Stronger warp for larger glass surfaces (nav bars, cards) */}
+          <filter id="glass-warp-strong" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.008 0.012"
+              numOctaves={4}
+              seed={5}
+              result="warp"
+            >
+              <animate attributeName="seed" values="5;8;12;8;5" dur="14s" repeatCount="indefinite" />
+            </feTurbulence>
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="warp"
+              scale={6}
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+        </defs>
+      </svg>
+
       {(isPending || plantLoading) && <LoadingOverlay compoundName={submittedIngredient || 'plant'} />}
 
       <div className={clsx(

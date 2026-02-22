@@ -21,7 +21,7 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       className={clsx(
-        'glass rounded-2xl p-4 sm:p-6 transition-all duration-200',
+        'card-glass-outer rounded-2xl transition-all duration-200',
         hoverable && 'hover:border-white/15 hover:shadow-lg',
         onClick && 'cursor-pointer active:scale-[0.99]',
         className
@@ -30,7 +30,12 @@ export const Card: React.FC<CardProps> = ({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {children}
+      {/* Background warp layer - distorts what's behind the card */}
+      <div className="card-glass-warp" aria-hidden="true" />
+      {/* Content layer - renders cleanly above the warp */}
+      <div className="card-glass-content p-4 sm:p-6">
+        {children}
+      </div>
     </div>
   );
 };

@@ -221,7 +221,7 @@ a:hover {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Glass Cards */
+/* Glass Cards - Layered warp architecture */
 .card {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -236,6 +236,55 @@ a:hover {
 .card:hover {
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow: var(--shadow-lg);
+}
+
+/* Card with liquid glass warp - outer wrapper */
+.card-glass-outer {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+
+.card-glass-outer:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Warp layer - distorts the background behind the card like glass refraction */
+.card-glass-warp {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  filter: url(#glass-warp-strong);
+  background: var(--glass-bg);
+  z-index: 0;
+}
+
+/* Specular rim highlight on warp layer */
+.card-glass-warp::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+              inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    transparent 40%,
+    transparent 60%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  pointer-events: none;
+}
+
+/* Content layer - sits above warp, text renders cleanly */
+.card-glass-content {
+  position: relative;
+  z-index: 1;
 }
 
 /* Input Fields */
@@ -538,6 +587,7 @@ hr {
   h1 { font-size: var(--font-size-4xl); }
   h2 { font-size: var(--font-size-3xl); }
   .card { padding: 2rem; }
+  .card-glass-content { padding: 2rem; }
 }
 
 @media (min-width: 768px) {
@@ -549,6 +599,14 @@ hr {
   .card {
     padding: 1.25rem;
     border-radius: var(--radius-xl);
+  }
+
+  .card-glass-outer {
+    border-radius: var(--radius-xl);
+  }
+
+  .card-glass-content {
+    padding: 1.25rem;
   }
 
   .btn {
@@ -611,7 +669,7 @@ hr {
   pointer-events: none;
 }
 
-/* Internal caustic/refraction layer */
+/* Internal caustic/refraction layer with warp distortion */
 .liquid-glass::after {
   content: '';
   position: absolute;
@@ -631,5 +689,6 @@ hr {
     transparent 50%
   );
   animation: liquidMove 8s infinite linear;
+  filter: url(#glass-warp);
   pointer-events: none;
 }

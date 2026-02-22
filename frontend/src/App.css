@@ -81,6 +81,7 @@
               width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 0;
   overflow: hidden;
+  filter: url(#glass-warp);
 }
 
 /* Shimmer on mode indicator */
@@ -120,6 +121,21 @@
   border-radius: var(--radius-xl);
   border: 1px solid rgba(255, 255, 255, 0.06);
   position: relative;
+  isolation: isolate;
+}
+
+/* Warp overlay on tab bar backdrop */
+.tab-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  backdrop-filter: blur(0.5px);
+  -webkit-backdrop-filter: blur(0.5px);
+  filter: url(#glass-warp);
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.6;
 }
 
 .tab-bar::-webkit-scrollbar {
@@ -177,6 +193,7 @@
               width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 0;
   overflow: hidden;
+  filter: url(#glass-warp);
 }
 
 /* Specular shimmer on the glass indicator */
@@ -235,6 +252,20 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 0.375rem 0.375rem calc(var(--safe-bottom, 0px) + 0.375rem);
   display: none;
+  isolation: isolate;
+}
+
+/* Warp overlay - distorts the blurred backdrop behind nav without affecting text */
+.bottom-nav::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+  filter: url(#glass-warp-strong);
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.7;
 }
 
 /* Specular top edge highlight */
@@ -311,6 +342,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   animation: liquidPillSettle 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   z-index: -1;
+  filter: url(#glass-warp);
 }
 
 .bottom-nav-btn .nav-icon {
@@ -442,6 +474,7 @@
   .mode-glass-indicator {
     transition-duration: 0.15s;
     transition-timing-function: ease;
+    filter: none;
   }
 
   .tab-glass-indicator::before,
@@ -451,5 +484,19 @@
 
   .bottom-nav-btn.active::before {
     animation: none;
+    filter: none;
+  }
+
+  .bottom-nav::after,
+  .tab-bar::after {
+    filter: none;
+  }
+
+  .card-glass-warp {
+    filter: none;
+  }
+
+  .liquid-glass::after {
+    filter: none;
   }
 }

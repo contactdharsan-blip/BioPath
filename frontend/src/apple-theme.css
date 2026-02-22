@@ -424,26 +424,31 @@ hr {
 
 /* ===== Liquid Glass Animations ===== */
 
-/* Tab content enters: blur clears, scales up from slightly small, fades in */
+/* Exponential blur decay: halves at each step for smooth clearing
+   12 → 6 → 3 → 1.5 → 0.75 → 0.3 → 0 */
+@keyframes liquidBlurClear {
+  0%   { filter: blur(12px); opacity: 0; }
+  10%  { filter: blur(6px);  opacity: 0.3; }
+  25%  { filter: blur(3px);  opacity: 0.55; }
+  40%  { filter: blur(1.5px); opacity: 0.72; }
+  55%  { filter: blur(0.75px); opacity: 0.85; }
+  75%  { filter: blur(0.3px); opacity: 0.94; }
+  100% { filter: blur(0px);  opacity: 1; }
+}
+
+/* Spring-physics slide for the content entering */
+@keyframes liquidGlassSlide {
+  0%   { transform: scale(0.97) translateY(6px); }
+  65%  { transform: scale(1.005) translateY(-1px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+/* Legacy combined animation (kept for other uses) */
 @keyframes liquidGlassIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.97) translateY(6px);
-    filter: blur(8px);
-  }
-  40% {
-    opacity: 0.6;
-    filter: blur(3px);
-  }
-  70% {
-    transform: scale(1.005) translateY(-1px);
-    filter: blur(0.5px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-    filter: blur(0);
-  }
+  0%   { opacity: 0; transform: scale(0.97) translateY(6px); filter: blur(12px); }
+  30%  { opacity: 0.55; filter: blur(3px); }
+  60%  { opacity: 0.85; filter: blur(0.75px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
 }
 
 /* Tab content exits: blurs out, scales down slightly, fades */
@@ -451,7 +456,7 @@ hr {
   0% {
     opacity: 1;
     transform: scale(1) translateY(0);
-    filter: blur(0);
+    filter: blur(0px);
   }
   100% {
     opacity: 0;

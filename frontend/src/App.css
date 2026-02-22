@@ -458,9 +458,13 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Liquid glass tab content wrapper */
+/* Liquid glass tab content wrapper
+   Two separate animations so blur uses smooth ease-out (no spring overshoot)
+   while movement gets the bouncy spring physics */
 .tab-content-liquid {
-  animation: liquidGlassIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation:
+    liquidBlurClear 0.55s ease-out forwards,
+    liquidGlassSlide 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   will-change: opacity, transform, filter;
 }
 

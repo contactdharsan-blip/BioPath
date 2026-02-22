@@ -3,7 +3,7 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks, File, UploadFile, Form, Request
 from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import uuid
 import logging
 import base64

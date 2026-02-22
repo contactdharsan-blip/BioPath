@@ -26,6 +26,7 @@ type AnalysisMode = 'compound' | 'plant' | 'medication-tracker';
 interface Tab {
   id: TabId;
   label: string;
+  shortLabel: string;
   icon: React.ReactNode;
 }
 
@@ -43,7 +44,6 @@ function App() {
   const { mutate: analyzeCompound, isPending } = useAnalysisSync();
 
   const handleAnalyze = (input: IngredientInput) => {
-    // Include user medications if available
     const enrichedInput: IngredientInput = {
       ...input,
       user_medications: medications.length > 0 ? medications.map(m => m.name) : undefined
@@ -63,7 +63,6 @@ function App() {
       },
     });
   };
-
 
   const handleNewAnalysis = () => {
     setResult(null);
@@ -91,118 +90,129 @@ function App() {
     {
       id: 'overview',
       label: 'Overview',
+      shortLabel: 'Overview',
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        <svg className="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       ),
     },
     {
       id: 'body-impact',
       label: 'Body Impact',
+      shortLabel: 'Body',
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m7.538-4a3.998 3.998 0 00-5.441 0L12 7.939M3 12a9 9 0 1118 0m0 0a9 9 0 01-18 0m18 0a9 9 0 01-18 0m9-9a3 3 0 11-6 0 3 3 0 016 0z" />
+        <svg className="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
         </svg>
       ),
     },
     {
       id: '3d-structure',
       label: '3D Structure',
+      shortLabel: '3D',
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+        <svg className="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
         </svg>
       ),
     },
     {
       id: 'targets',
       label: 'Targets',
+      shortLabel: 'Targets',
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+        <svg className="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
         </svg>
       ),
     },
     {
       id: 'pathways',
       label: 'Pathways',
+      shortLabel: 'Paths',
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        <svg className="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       ),
     },
     {
       id: 'side-effects',
       label: 'Side Effects',
+      shortLabel: 'Effects',
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <svg className="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
       ),
     },
     {
       id: 'drug-interactions',
-      label: 'Drug Interactions',
+      label: 'Interactions',
+      shortLabel: 'Drugs',
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+        <svg className="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
         </svg>
       ),
     },
   ];
 
+  const hasResults = result || plantResult;
+
   return (
-    <div className="min-h-screen bg-primary text-primary transition-colors duration-200">
+    <div className="min-h-screen app-bg relative">
       {(isPending || plantLoading) && <LoadingOverlay compoundName={submittedIngredient || 'plant'} />}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className={clsx(
+        'relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8',
+        hasResults ? 'pt-6 sm:pt-8 pb-24 md:pb-12' : 'pt-12 sm:pt-20 pb-12'
+      )}>
         {/* Header */}
-        <header className="mb-16 text-center">
-          <h1 className="text-5xl font-700 tracking-tight mb-3">BioPath</h1>
-          <p className="text-xl text-text-secondary">
-            Discover how compounds interact with your medications
-          </p>
+        <header className={clsx(
+          'text-center transition-all duration-300',
+          hasResults ? 'mb-6 sm:mb-8' : 'mb-10 sm:mb-16'
+        )}>
+          <h1 className={clsx(
+            'font-extrabold tracking-tight gradient-text transition-all duration-300',
+            hasResults ? 'text-2xl sm:text-3xl mb-1' : 'text-4xl sm:text-5xl md:text-6xl mb-3'
+          )}>
+            BioPath
+          </h1>
+          {!hasResults && (
+            <p className="text-sm sm:text-base text-slate-400 max-w-md mx-auto animate-content-fade">
+              Discover how compounds interact with your body and medications
+            </p>
+          )}
+          {hasResults && result && (
+            <p className="text-xs sm:text-sm text-slate-500">
+              Analyzing <span className="text-primary-400 font-medium">{result.ingredient_name}</span>
+            </p>
+          )}
         </header>
 
         {/* Mode Selector - only show when no results */}
-        {!result && !plantResult && (
-          <div className="flex justify-center mb-16">
-            <div className="flex gap-3 bg-secondary rounded-full p-1">
+        {!hasResults && (
+          <div className="flex justify-center mb-8 sm:mb-12 animate-content-fade px-2">
+            <div className="mode-selector w-full max-w-sm">
               <button
                 onClick={() => handleModeChange('compound')}
-                className={clsx(
-                  'px-8 py-3 rounded-full text-sm font-500 transition-all duration-300 relative overflow-hidden',
-                  analysisMode === 'compound'
-                    ? 'bg-gradient-to-r from-accent-warm to-accent-warm-dark text-white shadow-lg animate-liquid-glass'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
-                )}
+                className={clsx('mode-btn', analysisMode === 'compound' && 'active')}
               >
                 Compound
               </button>
               <button
                 onClick={() => handleModeChange('plant')}
-                className={clsx(
-                  'px-8 py-3 rounded-full text-sm font-500 transition-all duration-300 relative overflow-hidden',
-                  analysisMode === 'plant'
-                    ? 'bg-gradient-to-r from-accent-warm to-accent-warm-dark text-white shadow-lg animate-liquid-glass'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
-                )}
+                className={clsx('mode-btn', analysisMode === 'plant' && 'active')}
               >
                 Plant
               </button>
               <button
                 onClick={() => handleModeChange('medication-tracker')}
-                className={clsx(
-                  'px-8 py-3 rounded-full text-sm font-500 transition-all duration-300 relative overflow-hidden',
-                  analysisMode === 'medication-tracker'
-                    ? 'bg-gradient-to-r from-accent-warm to-accent-warm-dark text-white shadow-lg animate-liquid-glass'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
-                )}
+                className={clsx('mode-btn', analysisMode === 'medication-tracker' && 'active')}
               >
-                Medications
+                Meds
               </button>
             </div>
           </div>
@@ -236,43 +246,47 @@ function App() {
               )}
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* Tab Navigation */}
-              <div className="border-b border-gray-200 dark:border-gray-700">
-                <nav className="flex space-x-4 overflow-x-auto" aria-label="Tabs">
+            <div className="space-y-4 sm:space-y-6">
+              {/* Tab Navigation - Desktop: pill bar, Mobile: hidden (use bottom nav) */}
+              <div className="hidden md:block">
+                <div className="tab-bar">
                   {tabs.map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={clsx(
-                        'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors',
-                        activeTab === tab.id
-                          ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                      )}
+                      className={clsx('tab-btn', activeTab === tab.id && 'active')}
                     >
                       {tab.icon}
-                      {tab.label}
+                      <span>{tab.label}</span>
                       {tab.id === 'targets' && result.known_targets.length > 0 && (
-                        <span className="ml-1 px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">
-                          {result.known_targets.length}
-                        </span>
+                        <span className="tab-count">{result.known_targets.length}</span>
                       )}
                       {tab.id === 'pathways' && result.pathways.length > 0 && (
-                        <span className="ml-1 px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">
-                          {result.pathways.length}
-                        </span>
+                        <span className="tab-count">{result.pathways.length}</span>
                       )}
                     </button>
                   ))}
-                </nav>
+                </div>
               </div>
 
-              {/* Summary Cards - Below Tabs */}
+              {/* Mobile tab indicator */}
+              <div className="md:hidden flex items-center justify-between px-1">
+                <h2 className="text-lg font-semibold text-slate-200">
+                  {tabs.find(t => t.id === activeTab)?.label}
+                </h2>
+                <button
+                  onClick={handleNewAnalysis}
+                  className="text-xs text-primary-400 font-medium px-3 py-1.5 rounded-full border border-primary-400/30 hover:bg-primary-400/10 transition-colors"
+                >
+                  New Analysis
+                </button>
+              </div>
+
+              {/* Summary Cards */}
               <SummaryCard report={result} />
 
               {/* Tab Content */}
-              <div className="mt-6">
+              <div className="animate-content-fade" key={activeTab}>
                 {activeTab === 'overview' && (
                   <CompoundInfo compound={result.compound_identity} />
                 )}
@@ -293,11 +307,11 @@ function App() {
                   result.known_targets.length > 0 ? (
                     <TargetsList targets={result.known_targets} />
                   ) : (
-                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                      <svg className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <div className="text-center py-16 text-slate-500">
+                      <svg className="w-10 h-10 mx-auto mb-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
-                      <p>No known targets found for this compound.</p>
+                      <p className="text-sm">No known targets found for this compound.</p>
                     </div>
                   )
                 )}
@@ -306,11 +320,11 @@ function App() {
                   result.pathways.length > 0 ? (
                     <PathwaysList pathways={result.pathways} />
                   ) : (
-                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                      <svg className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <div className="text-center py-16 text-slate-500">
+                      <svg className="w-10 h-10 mx-auto mb-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
-                      <p>No pathways found for this compound.</p>
+                      <p className="text-sm">No pathways found for this compound.</p>
                     </div>
                   )
                 )}
@@ -333,11 +347,11 @@ function App() {
                 )}
               </div>
 
-              {/* New Analysis Button */}
-              <div className="text-center pt-4">
+              {/* New Analysis Button - Desktop only */}
+              <div className="hidden md:block text-center pt-4">
                 <button
                   onClick={handleNewAnalysis}
-                  className="px-6 py-3 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors duration-200"
+                  className="px-6 py-2.5 text-sm font-medium text-primary-400 border border-primary-500/30 rounded-full hover:bg-primary-500/10 transition-all duration-200"
                 >
                   New Analysis
                 </button>
@@ -345,34 +359,63 @@ function App() {
 
               {/* Disclaimer */}
               {result.final_summary.disclaimer && (
-                <div className="bg-secondary border border-divider rounded-lg p-6 text-sm">
-                  <p className="font-600 text-text-primary mb-2">Disclaimer</p>
-                  <p className="text-text-secondary">{result.final_summary.disclaimer}</p>
+                <div className="glass rounded-xl p-4 sm:p-5 text-sm">
+                  <p className="font-semibold text-slate-300 mb-1 text-xs uppercase tracking-wider">Disclaimer</p>
+                  <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">{result.final_summary.disclaimer}</p>
                 </div>
               )}
             </div>
           )}
         </main>
 
-        {/* Footer */}
-        <footer className="mt-24 pt-12 border-t border-divider text-center text-sm text-text-secondary">
-          <p className="mb-3">
-            Created by <span className="font-500 text-text-primary">Dharsan Kesavan</span>
+        {/* Footer - only show when no results or on desktop */}
+        <footer className={clsx(
+          'mt-16 sm:mt-24 pt-8 border-t border-white/5 text-center',
+          result && 'hidden md:block'
+        )}>
+          <p className="text-sm text-slate-500 mb-2">
+            Created by <span className="font-medium text-slate-400">Dharsan Kesavan</span>
           </p>
-          <p className="text-text-tertiary text-xs mb-4">
+          <p className="text-xs text-slate-600 mb-3">
             Powered by PubChem, ChEMBL, Reactome, Open Targets, and PlantNet
           </p>
-          <p className="text-text-tertiary text-xs mb-4">
+          <p className="text-xs text-slate-600 mb-4">
             For research purposes only - Not medical advice
           </p>
           <button
             onClick={() => setShowLicenses(true)}
-            className="text-info hover:opacity-70 transition-opacity text-xs"
+            className="text-xs text-primary-400/70 hover:text-primary-400 transition-colors"
           >
             Licenses & Attributions
           </button>
         </footer>
       </div>
+
+      {/* Mobile Bottom Navigation - only show when results are displayed */}
+      {result && (
+        <nav className="bottom-nav">
+          <div className="bottom-nav-inner">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={clsx('bottom-nav-btn', activeTab === tab.id && 'active')}
+              >
+                <svg className="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {tab.id === 'overview' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />}
+                  {tab.id === 'body-impact' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />}
+                  {tab.id === '3d-structure' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />}
+                  {tab.id === 'targets' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />}
+                  {tab.id === 'pathways' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />}
+                  {tab.id === 'side-effects' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />}
+                  {tab.id === 'drug-interactions' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />}
+                </svg>
+                <span>{tab.shortLabel}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+      )}
 
       {/* Licenses Modal */}
       <LicensesModal isOpen={showLicenses} onClose={() => setShowLicenses(false)} />

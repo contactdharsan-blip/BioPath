@@ -31,33 +31,33 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, isLoading 
   };
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <Card className="max-w-lg mx-auto">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
-            Analyze Active Ingredient
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-100 mb-1.5">
+            Analyze Compound
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Enter a compound or active ingredient name to analyze its biological pathways and targets.
+          <p className="text-sm text-slate-400">
+            Enter a compound to analyze its biological pathways and targets.
           </p>
         </div>
 
         <div>
-          <label htmlFor="ingredient" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Ingredient Name <span className="text-red-500">*</span>
+          <label htmlFor="ingredient" className="block text-xs font-medium text-slate-400 mb-2 uppercase tracking-wider">
+            Ingredient Name
           </label>
           <AutocompleteInput
             value={ingredientName}
             onChange={setIngredientName}
             onSelect={handleSelectCompound}
-            placeholder="Start typing (e.g., ibuprofen, aspirin)..."
+            placeholder="e.g., ibuprofen, aspirin, caffeine..."
           />
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Suggestions are powered by PubChem. Type at least 2 characters.
+          <p className="mt-1.5 text-xs text-slate-500">
+            Powered by PubChem. Type at least 2 characters.
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 pt-1">
           <Button
             type="submit"
             variant="primary"
@@ -66,7 +66,7 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, isLoading 
             disabled={!ingredientName.trim() || isLoading}
             className="flex-1"
           >
-            {isLoading ? 'Analyzing...' : 'Analyze Compound'}
+            {isLoading ? 'Analyzing...' : 'Analyze'}
           </Button>
           {ingredientName && (
             <Button

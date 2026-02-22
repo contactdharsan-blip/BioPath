@@ -21,9 +21,9 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       className={clsx(
-        'bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl border border-gray-100/50 dark:border-gray-700/50 p-6 glow-card',
-        hoverable && 'transition-all duration-200 hover:-translate-y-0.5',
-        onClick && 'cursor-pointer',
+        'glass rounded-2xl p-4 sm:p-6 transition-all duration-200',
+        hoverable && 'hover:border-white/15 hover:shadow-lg',
+        onClick && 'cursor-pointer active:scale-[0.99]',
         className
       )}
       onClick={onClick}

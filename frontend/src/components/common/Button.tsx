@@ -17,18 +17,18 @@ export const Button: React.FC<ButtonProps> = ({
   className,
   ...props
 }) => {
-  const baseStyles = 'font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const baseStyles = 'font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 active:scale-[0.97]';
 
   const variantStyles = {
-    primary: 'bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-500 disabled:bg-gray-300',
-    secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500 disabled:bg-gray-100',
-    outline: 'border-2 border-primary-500 text-primary-500 hover:bg-primary-50 focus:ring-primary-500 disabled:border-gray-300 disabled:text-gray-300',
+    primary: 'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 focus:ring-primary-500 shadow-lg shadow-primary-500/25 disabled:opacity-40 disabled:shadow-none',
+    secondary: 'bg-white/5 text-slate-200 border border-white/10 hover:bg-white/10 focus:ring-white/20 disabled:opacity-40',
+    outline: 'border border-primary-500/40 text-primary-400 hover:bg-primary-500/10 focus:ring-primary-500 disabled:opacity-40 disabled:border-slate-700 disabled:text-slate-600',
   };
 
   const sizeStyles = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg',
+    sm: 'px-3 py-1.5 text-sm min-h-[36px]',
+    md: 'px-4 py-2.5 text-sm min-h-[44px]',
+    lg: 'px-6 py-3 text-base min-h-[48px]',
   };
 
   return (
@@ -37,7 +37,7 @@ export const Button: React.FC<ButtonProps> = ({
         baseStyles,
         variantStyles[variant],
         sizeStyles[size],
-        (disabled || loading) && 'opacity-50 cursor-not-allowed',
+        (disabled || loading) && 'cursor-not-allowed',
         className
       )}
       disabled={disabled || loading}

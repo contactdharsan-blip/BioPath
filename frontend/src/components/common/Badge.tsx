@@ -15,8 +15,8 @@ export const Badge: React.FC<BadgeProps> = ({ tier, children, className }) => {
   return (
     <span
       className={clsx(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-        tier && tierStyles ? `${tierStyles.bg} ${tierStyles.text}` : 'bg-gray-100 text-gray-800',
+        'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
+        tier && tierStyles ? `${tierStyles.bg} ${tierStyles.text}` : 'bg-white/10 text-slate-300',
         className
       )}
     >

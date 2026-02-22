@@ -48,7 +48,6 @@ export const MedicationListManager: React.FC<MedicationListManagerProps> = ({
     const trimmed = medicationInput.trim();
     if (!trimmed) return;
 
-    // Check if medication already exists
     if (medications.some((m) => m.name.toLowerCase() === trimmed.toLowerCase())) {
       alert('This medication is already in your list');
       return;
@@ -79,21 +78,21 @@ export const MedicationListManager: React.FC<MedicationListManagerProps> = ({
   };
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <div className="space-y-6">
+    <Card className="max-w-lg mx-auto">
+      <div className="space-y-5">
         {/* Header */}
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-            💊 My Medications
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-100 mb-1.5">
+            My Medications
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Add your current medications to check for interactions when analyzing compounds or plants.
+          <p className="text-sm text-slate-400">
+            Add medications to check for interactions when analyzing compounds.
           </p>
         </div>
 
         {/* Medication List */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          <label className="block text-xs font-medium text-slate-400 mb-2 uppercase tracking-wider">
             Your Medications ({medications.length})
           </label>
 
@@ -102,30 +101,30 @@ export const MedicationListManager: React.FC<MedicationListManagerProps> = ({
               {medications.map((med) => (
                 <div
                   key={med.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700"
+                  className="flex items-center justify-between p-3 bg-white/[0.03] rounded-xl border border-white/5"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">💊</span>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{med.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Added {new Date(med.addedAt).toLocaleDateString()}
-                      </p>
-                    </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-slate-200 text-sm truncate">{med.name}</p>
+                    <p className="text-xs text-slate-500">
+                      Added {new Date(med.addedAt).toLocaleDateString()}
+                    </p>
                   </div>
                   <button
                     onClick={() => handleRemoveMedication(med.id)}
-                    className="px-3 py-1 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                    className="ml-3 p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors flex-shrink-0"
+                    aria-label="Remove medication"
                   >
-                    Remove
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-center mb-4">
-              <p className="text-sm text-blue-800 dark:text-blue-300">
-                No medications added yet. Add your medications to get personalized drug interaction warnings.
+            <div className="p-5 bg-primary-500/5 border border-primary-500/10 rounded-xl text-center mb-4">
+              <p className="text-sm text-slate-400">
+                No medications added yet. Add your medications to get personalized interaction warnings.
               </p>
             </div>
           )}
@@ -133,7 +132,7 @@ export const MedicationListManager: React.FC<MedicationListManagerProps> = ({
 
         {/* Add Medication Input */}
         <div>
-          <label htmlFor="medication" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="medication" className="block text-xs font-medium text-slate-400 mb-2 uppercase tracking-wider">
             Add Medication
           </label>
           <div className="flex gap-2">
@@ -142,58 +141,47 @@ export const MedicationListManager: React.FC<MedicationListManagerProps> = ({
                 value={medicationInput}
                 onChange={setMedicationInput}
                 onSelect={handleSelectMedication}
-                placeholder="Enter medication name (e.g., Lisinopril, Metformin)..."
+                placeholder="e.g., Lisinopril, Metformin..."
               />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Press Enter or click Add to add medication to your list.
-              </p>
             </div>
-            <div className="flex items-end">
-              <Button
-                type="button"
-                onClick={handleAddMedication}
-                variant="primary"
-                size="md"
-              >
-                + Add
-              </Button>
-            </div>
+            <Button
+              type="button"
+              onClick={handleAddMedication}
+              variant="primary"
+              size="md"
+              className="flex-shrink-0"
+            >
+              Add
+            </Button>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex gap-3 w-full">
-            <Button
-              type="button"
+        {medications.length > 0 && (
+          <div className="flex items-center justify-between pt-3 border-t border-white/5">
+            <span className="text-xs text-slate-500">
+              {medications.length} medication{medications.length !== 1 ? 's' : ''} saved
+            </span>
+            <button
               onClick={handleClearAll}
-              variant="outline"
-              size="md"
-              disabled={medications.length === 0}
+              className="text-xs text-slate-500 hover:text-red-400 transition-colors"
             >
               Clear All
-            </Button>
-            {medications.length > 0 && (
-              <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center flex-1">
-                {medications.length} medication{medications.length !== 1 ? 's' : ''} saved
-              </div>
-            )}
-          </div>
-        </div>
-
-        {medications.length > 0 && (
-          <div className="pt-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Now you can analyze any compound or plant, and see how it interacts with your medications.
-            </p>
+            </button>
           </div>
         )}
 
+        {medications.length > 0 && (
+          <p className="text-xs text-slate-500">
+            Analyze any compound or plant to see interactions with your medications.
+          </p>
+        )}
+
         {/* Info Box */}
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-          <p className="text-sm text-yellow-800 dark:text-yellow-300">
-            <strong>⚠️ Important:</strong> This tool provides information about potential drug interactions for educational purposes only.
-            Always consult with your healthcare provider before combining medications or botanical supplements.
+        <div className="glass rounded-xl p-4">
+          <p className="text-xs text-amber-400/80">
+            <strong>Important:</strong> This tool is for educational purposes only.
+            Always consult your healthcare provider before combining medications.
           </p>
         </div>
       </div>
@@ -201,7 +189,6 @@ export const MedicationListManager: React.FC<MedicationListManagerProps> = ({
   );
 };
 
-// Utility function to export medications (for potential future use)
 export const exportMedications = (): string => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -211,7 +198,6 @@ export const exportMedications = (): string => {
   }
 };
 
-// Utility function to import medications
 export const importMedications = (jsonString: string): Medication[] => {
   try {
     const parsed = JSON.parse(jsonString);

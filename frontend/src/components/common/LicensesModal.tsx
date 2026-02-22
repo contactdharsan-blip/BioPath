@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card } from './Card';
 
 interface LicensesModalProps {
   isOpen: boolean;
@@ -56,47 +55,50 @@ export const LicensesModal: React.FC<LicensesModalProps> = ({ isOpen, onClose })
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center z-50 animate-fade-in"
       onClick={onClose}
     >
-      <div onClick={(e) => e.stopPropagation()}>
-        <Card className="max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6">
-        <div className="flex justify-between items-start mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="glass-strong w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[85vh] sm:max-h-[80vh] overflow-hidden animate-slide-up"
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-white/5">
+          <h2 className="text-lg font-bold text-slate-100">
             Licenses & Attributions
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            className="p-2 text-slate-400 hover:text-slate-200 hover:bg-white/5 rounded-lg transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="space-y-4">
-          <p className="text-gray-600 dark:text-gray-400">
-            BioPath integrates data from multiple scientific databases and uses open-source tools.
-            We gratefully acknowledge the following resources:
+        {/* Content */}
+        <div className="overflow-y-auto p-4 sm:p-6 space-y-3">
+          <p className="text-sm text-slate-400">
+            BioPath integrates data from multiple scientific databases and open-source tools.
           </p>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {licenses.map((item) => (
               <div
                 key={item.name}
-                className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                className="p-3 bg-white/[0.03] rounded-xl border border-white/5"
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-slate-200 text-sm">
                       {item.name}
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-slate-400">
                       {item.description}
                     </p>
                   </div>
-                  <span className="text-xs px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded">
+                  <span className="text-xs px-2 py-0.5 bg-primary-500/10 text-primary-400 rounded-full flex-shrink-0">
                     {item.license}
                   </span>
                 </div>
@@ -104,7 +106,7 @@ export const LicensesModal: React.FC<LicensesModalProps> = ({ isOpen, onClose })
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 mt-2 inline-block"
+                  className="text-xs text-primary-400/70 hover:text-primary-400 mt-1.5 inline-block transition-colors truncate max-w-full"
                 >
                   {item.url}
                 </a>
@@ -112,18 +114,16 @@ export const LicensesModal: React.FC<LicensesModalProps> = ({ isOpen, onClose })
             ))}
           </div>
 
-          <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+          <div className="pt-3 border-t border-white/5">
+            <h3 className="font-semibold text-slate-200 text-sm mb-1">
               BioPath Application
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Created by Dharsan Kesavan. This application is provided for educational and research purposes only.
-              The information displayed is derived from public scientific databases and should not be used
-              for medical diagnosis or treatment decisions.
+            <p className="text-xs text-slate-400">
+              Created by Dharsan Kesavan. For educational and research purposes only.
+              Not for medical diagnosis or treatment decisions.
             </p>
           </div>
         </div>
-      </Card>
       </div>
     </div>
   );

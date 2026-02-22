@@ -10,231 +10,102 @@ export const Legend: React.FC<LegendProps> = ({ compact = false }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <Card className={clsx('bg-gray-50 dark:bg-gray-800/50', compact && 'p-4')}>
-      <div className="space-y-6">
+    <Card className={clsx(compact && '!p-3 sm:!p-4')}>
+      <div className="space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-600 text-gray-900 dark:text-gray-100">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <h3 className="text-sm font-semibold text-slate-200">
             Legend
           </h3>
-          {compact && (
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
-            >
-              {isExpanded ? 'Collapse' : 'Expand'}
-            </button>
-          )}
-        </div>
+          <svg
+            className={clsx(
+              'w-4 h-4 text-slate-400 transition-transform duration-200',
+              isExpanded && 'rotate-180'
+            )}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
 
-        {!compact || isExpanded ? (
-          <>
+        {isExpanded && (
+          <div className="space-y-4 animate-content-fade">
             {/* Confidence Tiers */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-600 text-gray-900 dark:text-gray-100">
+            <div className="space-y-2">
+              <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                 Confidence Tiers
               </h4>
-              <div className="space-y-2">
-                <div className="flex items-start gap-3">
-                  <div className="w-3 h-3 rounded-full bg-green-500 mt-1 flex-shrink-0"></div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      Tier A - Measured Data
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Actual bioassay measurements from ChEMBL. Highest confidence (95%+)
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500 mt-1 flex-shrink-0"></div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      Tier B - Curated Data
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Expert-curated mechanisms and pathways. Good confidence (70-80%)
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-3 h-3 rounded-full bg-gray-400 mt-1 flex-shrink-0"></div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      Tier C - Predicted Data
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Machine learning predictions and pattern matching. Lower confidence (30-85%)
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Target Types */}
-            <div className="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-6">
-              <h4 className="text-sm font-600 text-gray-900 dark:text-gray-100">
-                Target Types
-              </h4>
-              <div className="space-y-2">
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    Single Protein
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Individual protein target (most common)
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0"></div>
+                  <p className="text-xs text-slate-300">
+                    <span className="font-medium">Tier A</span> - Measured bioassay data (95%+)
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    Protein Complex
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Multi-subunit protein complex
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500 flex-shrink-0"></div>
+                  <p className="text-xs text-slate-300">
+                    <span className="font-medium">Tier B</span> - Curated mechanisms (70-80%)
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    Gene/Protein Family
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Group of related proteins with similar function
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-400 flex-shrink-0"></div>
+                  <p className="text-xs text-slate-300">
+                    <span className="font-medium">Tier C</span> - ML predictions (30-85%)
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Interaction Severity */}
-            <div className="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-6">
-              <h4 className="text-sm font-600 text-gray-900 dark:text-gray-100">
+            <div className="space-y-2 border-t border-white/5 pt-4">
+              <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                 Drug Interaction Severity
               </h4>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 text-xs font-medium rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                    Major
-                  </span>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Significant interaction - avoid concurrent use
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
-                    Moderate
-                  </span>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Notable interaction - monitor closely
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 text-xs font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                    Minor
-                  </span>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Mild interaction - minimal clinical impact
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 text-xs font-medium rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                    None
-                  </span>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    No known interactions
-                  </p>
-                </div>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-500/15 text-red-400">
+                  Major
+                </span>
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-500/15 text-yellow-400">
+                  Moderate
+                </span>
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-500/15 text-blue-400">
+                  Minor
+                </span>
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-500/15 text-green-400">
+                  None
+                </span>
               </div>
             </div>
 
-            {/* Confidence Score */}
-            <div className="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-6">
-              <h4 className="text-sm font-600 text-gray-900 dark:text-gray-100">
-                Result Confidence Level
+            {/* Confidence Levels */}
+            <div className="space-y-2 border-t border-white/5 pt-4">
+              <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                Confidence Levels
               </h4>
-              <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <div className="px-3 py-1 text-sm font-bold text-white bg-green-600 rounded">
-                    80%+
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      High
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Results are reliable and well-supported
-                    </p>
-                  </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 text-xs font-bold text-green-400">80%+</div>
+                  <span className="text-xs text-slate-400">High</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="px-3 py-1 text-sm font-bold text-white bg-blue-600 rounded">
-                    60-80%
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      Good
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Results are generally trustworthy
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 text-xs font-bold text-blue-400">60%+</div>
+                  <span className="text-xs text-slate-400">Good</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="px-3 py-1 text-sm font-bold text-white bg-yellow-600 rounded">
-                    40-60%
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      Moderate
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Use with caution and verify important findings
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 text-xs font-bold text-yellow-400">40%+</div>
+                  <span className="text-xs text-slate-400">Moderate</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="px-3 py-1 text-sm font-bold text-white bg-gray-600 rounded">
-                    Below 40%
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      Low
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Limited confidence - require further validation
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 text-xs font-bold text-slate-500">&lt;40%</div>
+                  <span className="text-xs text-slate-400">Low</span>
                 </div>
               </div>
             </div>
-
-            {/* Measured vs Predicted */}
-            <div className="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-6">
-              <h4 className="text-sm font-600 text-gray-900 dark:text-gray-100">
-                Measured vs Predicted
-              </h4>
-              <div className="space-y-2">
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    Measured Targets
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Targets tested in actual bioassays with potency values (IC50, Ki, Kd)
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    Predicted Targets
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Targets predicted by machine learning or pattern matching without direct bioassay data
-                  </p>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Click "Expand" to view all definitions
-          </p>
+          </div>
         )}
       </div>
     </Card>

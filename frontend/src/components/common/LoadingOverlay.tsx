@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import clsx from 'clsx';
 
 interface LoadingOverlayProps {
   compoundName?: string;
@@ -71,5 +72,3 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ compoundName }) 
   );
 };
 
-// Need clsx for conditional classes
-import clsx from 'clsx';

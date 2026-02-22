@@ -9,23 +9,23 @@ interface CompoundInfoProps {
 export const CompoundInfo: React.FC<CompoundInfoProps> = ({ compound }) => {
   return (
     <Card className="animate-slide-up">
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Compound Identity</h3>
+      <h3 className="text-lg font-semibold text-slate-200 mb-4">Compound Identity</h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Name</label>
-          <p className="text-base text-gray-900 dark:text-white mt-1">{compound.ingredient_name}</p>
+          <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Name</label>
+          <p className="text-sm text-slate-200 mt-1">{compound.ingredient_name}</p>
         </div>
 
         {compound.pubchem_cid && (
           <div>
-            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">PubChem CID</label>
-            <p className="text-base text-gray-900 dark:text-white mt-1">
+            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">PubChem CID</label>
+            <p className="text-sm mt-1">
               <a
                 href={`https://pubchem.ncbi.nlm.nih.gov/compound/${compound.pubchem_cid}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline"
+                className="text-primary-400 hover:text-primary-300 transition-colors"
               >
                 {compound.pubchem_cid}
               </a>
@@ -35,40 +35,40 @@ export const CompoundInfo: React.FC<CompoundInfoProps> = ({ compound }) => {
 
         {compound.molecular_formula && (
           <div>
-            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Molecular Formula</label>
-            <p className="text-base text-gray-900 dark:text-white mt-1 font-mono">{compound.molecular_formula}</p>
+            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Formula</label>
+            <p className="text-sm text-slate-200 mt-1 font-mono">{compound.molecular_formula}</p>
           </div>
         )}
 
         {compound.molecular_weight && (
           <div>
-            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Molecular Weight</label>
-            <p className="text-base text-gray-900 dark:text-white mt-1">{compound.molecular_weight.toFixed(2)} g/mol</p>
+            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Weight</label>
+            <p className="text-sm text-slate-200 mt-1">{compound.molecular_weight.toFixed(2)} g/mol</p>
           </div>
         )}
 
         {compound.canonical_smiles && (
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">SMILES</label>
-            <p className="text-sm text-gray-900 dark:text-gray-200 mt-1 font-mono break-all bg-gray-50 dark:bg-gray-700 p-2 rounded">
+          <div className="sm:col-span-2">
+            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">SMILES</label>
+            <p className="text-xs text-slate-300 mt-1 font-mono break-all bg-white/5 p-2.5 rounded-xl border border-white/5">
               {compound.canonical_smiles}
             </p>
           </div>
         )}
 
         {compound.inchikey && (
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">InChIKey</label>
-            <p className="text-sm text-gray-900 dark:text-gray-200 mt-1 font-mono break-all bg-gray-50 dark:bg-gray-700 p-2 rounded">
+          <div className="sm:col-span-2">
+            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">InChIKey</label>
+            <p className="text-xs text-slate-300 mt-1 font-mono break-all bg-white/5 p-2.5 rounded-xl border border-white/5">
               {compound.inchikey}
             </p>
           </div>
         )}
 
         {compound.iupac_name && (
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">IUPAC Name</label>
-            <p className="text-sm text-gray-900 dark:text-white mt-1">{compound.iupac_name}</p>
+          <div className="sm:col-span-2">
+            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">IUPAC Name</label>
+            <p className="text-sm text-slate-300 mt-1">{compound.iupac_name}</p>
           </div>
         )}
       </div>

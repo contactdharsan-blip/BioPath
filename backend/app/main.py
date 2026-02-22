@@ -991,15 +991,14 @@ try:
 except Exception as e:
     logger.warning(f"Could not mount static assets: {e}")
 
-@app.get("/")
-async def serve_frontend():
-    """Serve the React frontend"""
-    index_path = STATIC_DIR / "index.html"
-    if index_path.exists():
-        return FileResponse(index_path)
-    else:
-        logger.error(f"index.html not found at {index_path}")
-        raise HTTPException(status_code=404, detail="Frontend not built")
+# Check if frontend is built
+FRONTEND_AVAILABLE = (STATIC_DIR / "index.html").exists()
+
+if FRONTEND_AVAILABLE:
+    @app.get("/")
+    async def serve_frontend():
+        """Serve the React frontend"""
+        return FileResponse(STATIC_DIR / "index.html")
 
     # Catch-all for SPA routing (must be after API routes)
     @app.get("/{full_path:path}")

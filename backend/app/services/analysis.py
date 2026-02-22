@@ -18,7 +18,12 @@ from app.clients.drugbank import DrugBankClient
 from app.services.cache import cache_service
 from app.services.scoring import ScoringEngine
 from app.services.target_prediction_service import target_prediction_service
-from app.services.deepchem_ml_service import deepchem_ml_service
+try:
+    from app.services.deepchem_ml_service import deepchem_ml_service
+except (ImportError, ModuleNotFoundError):
+    deepchem_ml_service = None
+    logger_temp = logging.getLogger(__name__)
+    logger_temp.warning("DeepChem ML service unavailable - optional ML features disabled")
 from app.services.pharmacophore_analysis import pharmacophore_analyzer
 from app.config import settings
 

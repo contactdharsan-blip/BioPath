@@ -17,7 +17,10 @@ import json
 from pathlib import Path
 import time
 
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 from app.models.schemas import TargetEvidence, ConfidenceTier, AssayReference
 from app.config import settings

@@ -574,6 +574,152 @@ class SideEffectsDatabase:
                 effect_type='negative'
             ),
         ],
+        'cox': [
+            SideEffect(
+                name='Gastrointestinal Irritation',
+                description='Stomach discomfort, heartburn, or nausea due to COX pathway inhibition reducing protective prostaglandins.',
+                severity='moderate',
+                frequency='common',
+                body_system='Digestive',
+                mechanism_basis='COX inhibition reduces gastric mucosal protection',
+                management_tips=[
+                    'Take with food or milk',
+                    'Use lowest effective dose',
+                    'Consider enteric-coated formulations'
+                ],
+                when_to_seek_help='Black or bloody stools, severe stomach pain, vomiting blood',
+                effect_type='negative'
+            ),
+        ],
+        'arachidonate': [
+            SideEffect(
+                name='Anti-inflammatory Effect',
+                description='Reduces arachidonic acid-derived inflammatory mediators.',
+                severity='mild',
+                frequency='common',
+                body_system='Immune',
+                mechanism_basis='Arachidonate cascade inhibition reduces prostaglandin and leukotriene production',
+                management_tips=[
+                    'Monitor inflammation levels',
+                    'Continue as directed',
+                    'Report persistent symptoms'
+                ],
+                effect_type='positive'
+            ),
+        ],
+        'prostaglandin': [
+            SideEffect(
+                name='Reduced Prostaglandin Protection',
+                description='Lower prostaglandin levels may reduce gastric protection and affect kidney blood flow.',
+                severity='moderate',
+                frequency='uncommon',
+                body_system='Digestive',
+                mechanism_basis='Prostaglandins protect gastric mucosa and maintain renal perfusion',
+                management_tips=[
+                    'Take with food',
+                    'Stay well hydrated',
+                    'Monitor for GI symptoms'
+                ],
+                when_to_seek_help='Stomach pain, blood in stool, decreased urination',
+                effect_type='negative'
+            ),
+        ],
+        'thromboxane': [
+            SideEffect(
+                name='Bleeding Tendency',
+                description='Reduced thromboxane production affects platelet aggregation and blood clotting.',
+                severity='moderate',
+                frequency='uncommon',
+                body_system='Hematologic',
+                mechanism_basis='Thromboxane A2 is essential for platelet activation and clot formation',
+                management_tips=[
+                    'Monitor for unusual bruising',
+                    'Inform surgeons before procedures',
+                    'Avoid combining with anticoagulants'
+                ],
+                when_to_seek_help='Prolonged bleeding, blood in urine or stool',
+                effect_type='negative'
+            ),
+        ],
+        'interleukin': [
+            SideEffect(
+                name='Immune Modulation',
+                description='May alter interleukin-mediated immune signaling and inflammatory responses.',
+                severity='mild',
+                frequency='uncommon',
+                body_system='Immune',
+                mechanism_basis='Modulation of interleukin signaling pathways',
+                management_tips=[
+                    'Monitor for signs of infection',
+                    'Report persistent fever',
+                    'Maintain good hygiene'
+                ],
+                effect_type='negative'
+            ),
+        ],
+        'immune system': [
+            SideEffect(
+                name='Immune Function Changes',
+                description='May affect overall immune system function and response to infection.',
+                severity='mild',
+                frequency='uncommon',
+                body_system='Immune',
+                mechanism_basis='Broad immune pathway modulation',
+                management_tips=[
+                    'Monitor for signs of infection',
+                    'Maintain healthy lifestyle',
+                    'Report unusual symptoms'
+                ],
+                effect_type='negative'
+            ),
+        ],
+        'neuronal': [
+            SideEffect(
+                name='Neurological Effects',
+                description='May affect neuronal signaling, potentially causing headache or dizziness.',
+                severity='mild',
+                frequency='uncommon',
+                body_system='Nervous',
+                mechanism_basis='Modulation of neuronal system pathways',
+                management_tips=[
+                    'Monitor for headaches or dizziness',
+                    'Avoid driving if affected',
+                    'Report persistent symptoms'
+                ],
+                effect_type='negative'
+            ),
+        ],
+        'signalling': [
+            SideEffect(
+                name='Cell Signaling Changes',
+                description='May modulate G-protein coupled receptor signaling pathways.',
+                severity='mild',
+                frequency='uncommon',
+                body_system='Cellular',
+                mechanism_basis='G-protein and second messenger pathway modulation',
+                management_tips=[
+                    'Follow recommended dosing',
+                    'Report unusual symptoms'
+                ],
+                effect_type='negative'
+            ),
+        ],
+        'fatty acid': [
+            SideEffect(
+                name='Lipid Metabolism Changes',
+                description='May affect fatty acid metabolism and lipid profiles.',
+                severity='mild',
+                frequency='uncommon',
+                body_system='Endocrine',
+                mechanism_basis='Fatty acid oxidation and synthesis pathway modulation',
+                management_tips=[
+                    'Monitor lipid levels if on long-term use',
+                    'Maintain healthy diet',
+                    'Regular exercise'
+                ],
+                effect_type='negative'
+            ),
+        ],
         'immune response': [
             SideEffect(
                 name='Immune System Dysregulation',
@@ -594,7 +740,71 @@ class SideEffectsDatabase:
     }
 
     # Target-based side effects mapping
+    # Note: Keywords must match ChEMBL preferred names (e.g., "Prostaglandin G/H synthase" not "Cyclooxygenase")
     TARGET_SIDE_EFFECTS: Dict[str, List[SideEffect]] = {
+        'prostaglandin g/h synthase': [
+            SideEffect(
+                name='Gastrointestinal Irritation',
+                description='Stomach discomfort, heartburn, or nausea due to reduced protective prostaglandins in the stomach lining.',
+                severity='moderate',
+                frequency='common',
+                body_system='Digestive',
+                mechanism_basis='COX-1 inhibition reduces gastric mucosal protection',
+                management_tips=[
+                    'Take with food or milk',
+                    'Use lowest effective dose',
+                    'Consider enteric-coated formulations',
+                    'Avoid alcohol consumption'
+                ],
+                when_to_seek_help='Black or bloody stools, severe stomach pain, vomiting blood',
+                effect_type='negative'
+            ),
+            SideEffect(
+                name='Increased Bleeding Risk',
+                description='Reduced ability for blood to clot due to effects on platelet function.',
+                severity='moderate',
+                frequency='uncommon',
+                body_system='Cardiovascular',
+                mechanism_basis='COX-1 inhibition reduces thromboxane A2 production in platelets',
+                management_tips=[
+                    'Inform healthcare providers before surgery',
+                    'Avoid combining with other blood thinners',
+                    'Watch for unusual bruising'
+                ],
+                when_to_seek_help='Unusual bleeding, prolonged bleeding from cuts, severe bruising',
+                effect_type='negative'
+            ),
+            SideEffect(
+                name='Kidney Function Changes',
+                description='May affect kidney blood flow, especially in those with existing kidney conditions.',
+                severity='moderate',
+                frequency='uncommon',
+                body_system='Urinary',
+                mechanism_basis='Prostaglandins help maintain renal blood flow',
+                management_tips=[
+                    'Stay well hydrated',
+                    'Avoid prolonged use',
+                    'Regular monitoring if using long-term'
+                ],
+                when_to_seek_help='Decreased urination, swelling in legs/feet, unusual fatigue',
+                effect_type='negative'
+            ),
+            SideEffect(
+                name='Cardiovascular Risk',
+                description='Long-term use may slightly increase risk of heart problems in susceptible individuals.',
+                severity='serious',
+                frequency='rare',
+                body_system='Cardiovascular',
+                mechanism_basis='COX-2 selective inhibition may affect vascular prostacyclin balance',
+                management_tips=[
+                    'Use lowest dose for shortest time',
+                    'Discuss cardiovascular history with doctor',
+                    'Consider alternatives if high risk'
+                ],
+                when_to_seek_help='Chest pain, shortness of breath, sudden weakness on one side',
+                effect_type='negative'
+            ),
+        ],
         'cyclooxygenase': [
             SideEffect(
                 name='Gastrointestinal Irritation',
@@ -703,6 +913,36 @@ class SideEffectsDatabase:
                 effect_type='positive'
             ),
         ],
+        'synthase': [
+            SideEffect(
+                name='Enzyme Activity Changes',
+                description='May alter synthase enzyme activity affecting downstream metabolite production.',
+                severity='mild',
+                frequency='uncommon',
+                body_system='Cellular',
+                mechanism_basis='Synthase enzyme modulation affects metabolite levels',
+                management_tips=[
+                    'Monitor for unusual symptoms',
+                    'Follow recommended dosing'
+                ],
+                effect_type='negative'
+            ),
+        ],
+        'aldo-keto reductase': [
+            SideEffect(
+                name='Steroid Metabolism Changes',
+                description='May affect steroid hormone metabolism and prostaglandin levels.',
+                severity='mild',
+                frequency='uncommon',
+                body_system='Endocrine',
+                mechanism_basis='Aldo-keto reductases metabolize steroids and prostaglandins',
+                management_tips=[
+                    'Monitor hormonal symptoms',
+                    'Report mood or energy changes'
+                ],
+                effect_type='negative'
+            ),
+        ],
         'cytochrome': [
             SideEffect(
                 name='Drug Metabolism Changes',
@@ -791,6 +1031,7 @@ class SideEffectsDatabase:
         pathway_names: List[str],
         max_effects_per_pathway: int = 3
     ) -> List[SideEffect]:
+        # Note: Increased from 3 to allow comprehensive pathway coverage
         """
         Get side effects for a list of pathways.
 
@@ -821,7 +1062,7 @@ class SideEffectsDatabase:
     def get_side_effects_for_targets(
         cls,
         target_names: List[str],
-        max_effects_per_target: int = 2
+        max_effects_per_target: int = 4
     ) -> List[SideEffect]:
         """
         Get side effects for a list of targets.

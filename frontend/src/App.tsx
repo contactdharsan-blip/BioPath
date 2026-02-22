@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { AnalysisForm } from './components/analysis/AnalysisForm';
 import { PlantIdentification } from './components/analysis/PlantIdentification';
 import { PlantAnalysisResults } from './components/analysis/PlantAnalysisResults';
@@ -40,6 +40,69 @@ function App() {
   const [plantLoading, setPlantLoading] = useState(false);
   const [medications, setMedications] = useState<Medication[]>([]);
   useTheme();
+
+  // Liquid glass indicator refs and state
+  const tabBarRef = useRef<HTMLDivElement>(null);
+  const tabBtnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const modeBarRef = useRef<HTMLDivElement>(null);
+  const modeBtnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 });
+  const [modeIndicator, setModeIndicator] = useState({ left: 0, width: 0 });
+  const [tabMoving, setTabMoving] = useState(false);
+  const [modeMoving, setModeMoving] = useState(false);
+
+  // Compute glass indicator position for tab bar
+  const updateTabIndicator = useCallback(() => {
+    const bar = tabBarRef.current;
+    const btn = tabBtnRefs.current.get(activeTab);
+    if (bar && btn) {
+      const barRect = bar.getBoundingClientRect();
+      const btnRect = btn.getBoundingClientRect();
+      setTabIndicator({
+        left: btnRect.left - barRect.left,
+        width: btnRect.width,
+      });
+    }
+  }, [activeTab]);
+
+  // Compute glass indicator position for mode selector
+  const updateModeIndicator = useCallback(() => {
+    const bar = modeBarRef.current;
+    const btn = modeBtnRefs.current.get(analysisMode);
+    if (bar && btn) {
+      const barRect = bar.getBoundingClientRect();
+      const btnRect = btn.getBoundingClientRect();
+      setModeIndicator({
+        left: btnRect.left - barRect.left,
+        width: btnRect.width,
+      });
+    }
+  }, [analysisMode]);
+
+  // Update indicators when active tab/mode changes
+  useEffect(() => {
+    updateTabIndicator();
+    setTabMoving(true);
+    const timer = setTimeout(() => setTabMoving(false), 450);
+    return () => clearTimeout(timer);
+  }, [activeTab, updateTabIndicator]);
+
+  useEffect(() => {
+    updateModeIndicator();
+    setModeMoving(true);
+    const timer = setTimeout(() => setModeMoving(false), 400);
+    return () => clearTimeout(timer);
+  }, [analysisMode, updateModeIndicator]);
+
+  // Recalculate on resize
+  useEffect(() => {
+    const handleResize = () => {
+      updateTabIndicator();
+      updateModeIndicator();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [updateTabIndicator, updateModeIndicator]);
 
   const { mutate: analyzeCompound, isPending } = useAnalysisSync();
 
@@ -195,25 +258,22 @@ function App() {
         {/* Mode Selector - only show when no results */}
         {!hasResults && (
           <div className="flex justify-center mb-8 sm:mb-12 animate-content-fade px-2">
-            <div className="mode-selector w-full max-w-sm">
-              <button
-                onClick={() => handleModeChange('compound')}
-                className={clsx('mode-btn', analysisMode === 'compound' && 'active')}
-              >
-                Compound
-              </button>
-              <button
-                onClick={() => handleModeChange('plant')}
-                className={clsx('mode-btn', analysisMode === 'plant' && 'active')}
-              >
-                Plant
-              </button>
-              <button
-                onClick={() => handleModeChange('medication-tracker')}
-                className={clsx('mode-btn', analysisMode === 'medication-tracker' && 'active')}
-              >
-                Meds
-              </button>
+            <div className="mode-selector w-full max-w-sm" ref={modeBarRef}>
+              {/* Liquid glass sliding indicator */}
+              <div
+                className={clsx('mode-glass-indicator', modeMoving && 'moving')}
+                style={{ left: modeIndicator.left, width: modeIndicator.width }}
+              />
+              {(['compound', 'plant', 'medication-tracker'] as AnalysisMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  ref={(el) => { if (el) modeBtnRefs.current.set(mode, el); }}
+                  onClick={() => handleModeChange(mode)}
+                  className={clsx('mode-btn', analysisMode === mode && 'active')}
+                >
+                  {mode === 'compound' ? 'Compound' : mode === 'plant' ? 'Plant' : 'Meds'}
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -228,7 +288,7 @@ function App() {
             />
           ) : !result ? (
             /* Input Forms */
-            <div key={analysisMode} className="animate-content-fade">
+            <div key={analysisMode} className="tab-content-liquid">
               {analysisMode === 'compound' ? (
                 <AnalysisForm onSubmit={handleAnalyze} isLoading={isPending} />
               ) : analysisMode === 'plant' ? (
@@ -247,12 +307,18 @@ function App() {
             </div>
           ) : (
             <div className="space-y-4 sm:space-y-6">
-              {/* Tab Navigation - Desktop: pill bar, Mobile: hidden (use bottom nav) */}
+              {/* Tab Navigation - Desktop: liquid glass pill bar, Mobile: hidden (use bottom nav) */}
               <div className="hidden md:block">
-                <div className="tab-bar">
+                <div className="tab-bar" ref={tabBarRef}>
+                  {/* Liquid glass sliding indicator */}
+                  <div
+                    className={clsx('tab-glass-indicator', tabMoving && 'moving')}
+                    style={{ left: tabIndicator.left, width: tabIndicator.width }}
+                  />
                   {tabs.map((tab) => (
                     <button
                       key={tab.id}
+                      ref={(el) => { if (el) tabBtnRefs.current.set(tab.id, el); }}
                       onClick={() => setActiveTab(tab.id)}
                       className={clsx('tab-btn', activeTab === tab.id && 'active')}
                     >
@@ -285,8 +351,8 @@ function App() {
               {/* Summary Cards */}
               <SummaryCard report={result} />
 
-              {/* Tab Content */}
-              <div className="animate-content-fade" key={activeTab}>
+              {/* Tab Content - liquid glass transition */}
+              <div className="tab-content-liquid" key={activeTab}>
                 {activeTab === 'overview' && (
                   <CompoundInfo compound={result.compound_identity} />
                 )}

@@ -10,6 +10,7 @@ import { BodyDiagram } from './components/analysis/BodyDiagram';
 import { MoleculeViewer } from './components/analysis/MoleculeViewer';
 import { SideEffectsTab } from './components/analysis/SideEffectsTab';
 import { DrugInteractionsTab } from './components/analysis/DrugInteractionsTab';
+import { DosageTab } from './components/analysis/DosageTab';
 import { MedicationListManager, type Medication } from './components/medications/MedicationListManager';
 import { LoadingOverlay } from './components/common/LoadingOverlay';
 import { LicensesModal } from './components/common/LicensesModal';
@@ -20,7 +21,7 @@ import clsx from 'clsx';
 import './apple-theme.css';
 import './App.css';
 
-type TabId = 'overview' | 'body-impact' | '3d-structure' | 'targets' | 'pathways' | 'side-effects' | 'drug-interactions';
+type TabId = 'overview' | 'body-impact' | '3d-structure' | 'targets' | 'pathways' | 'side-effects' | 'drug-interactions' | 'dosage';
 type AnalysisMode = 'compound' | 'plant' | 'medication-tracker';
 
 interface Tab {
@@ -220,6 +221,16 @@ function App() {
         </svg>
       ),
     },
+    {
+      id: 'dosage',
+      label: 'Dosage',
+      shortLabel: 'Dosage',
+      icon: (
+        <svg className="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+        </svg>
+      ),
+    },
   ];
 
   const hasResults = result || plantResult;
@@ -243,7 +254,7 @@ function App() {
             <feDisplacementMap
               in="SourceGraphic"
               in2="warp"
-              scale={4}
+              scale={1.5}
               xChannelSelector="R"
               yChannelSelector="G"
             />
@@ -262,7 +273,7 @@ function App() {
             <feDisplacementMap
               in="SourceGraphic"
               in2="warp"
-              scale={6}
+              scale={3}
               xChannelSelector="R"
               yChannelSelector="G"
             />
@@ -455,6 +466,16 @@ function App() {
                     personalized_interactions={result.personalized_interactions || []}
                   />
                 )}
+
+                {activeTab === 'dosage' && (
+                  <DosageTab
+                    compoundName={result.ingredient_name}
+                    pubchemCid={result.compound_identity.pubchem_cid}
+                    inchikey={result.compound_identity.inchikey}
+                    smiles={result.compound_identity.canonical_smiles}
+                    targets={result.known_targets}
+                  />
+                )}
               </div>
 
               {/* New Analysis Button - Desktop only */}
@@ -519,6 +540,7 @@ function App() {
                   {tab.id === 'pathways' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />}
                   {tab.id === 'side-effects' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />}
                   {tab.id === 'drug-interactions' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />}
+                  {tab.id === 'dosage' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />}
                 </svg>
                 <span>{tab.shortLabel}</span>
               </button>

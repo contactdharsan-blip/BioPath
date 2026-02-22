@@ -223,6 +223,59 @@ class SideEffectsResponse(BaseModel):
     side_effects: List[SideEffect]
 
 
+class DosageDataPoint(BaseModel):
+    """A single dosage data point from one source"""
+    value: Optional[float] = None
+    value_high: Optional[float] = None
+    unit: str
+    route: Optional[str] = None
+    context: str  # "therapeutic", "toxic", "lethal", "plant_concentration", "potency"
+    description: str
+    source: str  # "PubChem", "ChEMBL", "Dr. Duke"
+    source_url: Optional[str] = None
+    confidence: str = "moderate"  # "high", "moderate", "low"
+    species: Optional[str] = None
+
+
+class PotencyData(BaseModel):
+    """Potency data from ChEMBL for a target"""
+    target_name: str
+    pchembl_value: float
+    standard_type: str  # "IC50", "Ki", "EC50", "Kd"
+    standard_value: float
+    standard_units: str
+    effective_concentration_nm: float
+    potency_category: str  # "very_potent", "potent", "moderate", "weak"
+
+
+class PlantConcentration(BaseModel):
+    """Plant tissue concentration from Dr. Duke"""
+    plant_part: Optional[str] = None
+    concentration_low: Optional[float] = None
+    concentration_high: Optional[float] = None
+    unit: str = "ppm"
+
+
+class SafetyProfile(BaseModel):
+    """Safety context information"""
+    ld50: Optional[DosageDataPoint] = None
+    therapeutic_range: Optional[DosageDataPoint] = None
+    therapeutic_index: Optional[float] = None
+    safety_classification: Optional[str] = None  # "narrow_therapeutic_index", "wide", "unknown"
+    warnings: List[str] = Field(default_factory=list)
+
+
+class DosageResponse(BaseModel):
+    """Response containing dosage data for a compound"""
+    compound_name: str
+    dosage_data: List[DosageDataPoint] = Field(default_factory=list)
+    potency_data: List[PotencyData] = Field(default_factory=list)
+    plant_concentrations: List[PlantConcentration] = Field(default_factory=list)
+    safety_profile: SafetyProfile = Field(default_factory=SafetyProfile)
+    sources_queried: List[str] = Field(default_factory=list)
+    data_quality_note: str = ""
+
+
 class AnalysisJob(BaseModel):
     """Analysis job status"""
     job_id: str

@@ -250,6 +250,86 @@ class DrDukeClient:
 
         return activities
 
+    def get_compound_concentrations(self, chemical_name: str) -> List[Dict[str, Any]]:
+        """
+        Get plant tissue concentrations for a chemical compound.
+
+        Args:
+            chemical_name: Name of the chemical
+
+        Returns:
+            List of dicts with plant_part, concentration_low, concentration_high, unit
+        """
+        cache_key = f"concentrations_{chemical_name.lower().replace(' ', '_')}"
+        cached = self._get_cached(cache_key)
+        if cached:
+            return cached
+
+        concentrations = []
+
+        try:
+            with httpx.Client(timeout=self.timeout) as client:
+                response = client.get(
+                    f"{self.base_url}/phytochem/search/list",
+                    params={
+                        "search_api_fulltext": chemical_name,
+                        "type": "chemical"
+                    }
+                )
+                response.raise_for_status()
+                html = response.text
+
+                # Parse concentration data from search results
+                conc_patterns = [
+                    r'([\d,.]+)\s*(?:to|-)\s*([\d,.]+)\s*(ppm|mg/kg|%)',
+                    r'([\d,.]+)\s*(ppm|mg/kg|%)',
+                ]
+
+                part_pattern = r'(?:in\s+|from\s+)(leaf|root|seed|bark|flower|fruit|stem|rhizome|whole plant|aerial part|bulb|peel)'
+
+                for pattern in conc_patterns:
+                    matches = re.finditer(pattern, html, re.IGNORECASE)
+                    for match in matches:
+                        groups = match.groups()
+                        try:
+                            if len(groups) == 3:
+                                low = float(groups[0].replace(",", ""))
+                                high = float(groups[1].replace(",", ""))
+                                unit = groups[2]
+                            else:
+                                low = float(groups[0].replace(",", ""))
+                                high = None
+                                unit = groups[1]
+
+                            # Look for plant part near this match
+                            context_start = max(0, match.start() - 100)
+                            context = html[context_start:match.end() + 50]
+                            part_match = re.search(part_pattern, context, re.IGNORECASE)
+                            plant_part = part_match.group(1).capitalize() if part_match else None
+
+                            entry = {
+                                "plant_part": plant_part,
+                                "concentration_low": low,
+                                "concentration_high": high,
+                                "unit": unit,
+                            }
+                            if entry not in concentrations:
+                                concentrations.append(entry)
+                        except (ValueError, TypeError):
+                            pass
+
+                    if concentrations:
+                        break
+
+            concentrations = concentrations[:10]
+            self._set_cached(cache_key, concentrations)
+            logger.info(f"Dr. Duke concentrations: {len(concentrations)} for {chemical_name}")
+
+        except Exception as e:
+            logger.warning(f"Error getting concentrations for {chemical_name}: {e}")
+
+        return concentrations
+
     def search_chemicals_by_activity(self, activity: str) -> List[DrDukeChemical]:
         """
         Find chemicals that have a specific biological activity.

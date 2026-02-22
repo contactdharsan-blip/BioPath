@@ -1,9 +1,11 @@
 """Service for checking drug interactions between compounds and medications."""
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Optional
 from app.models.schemas import TargetEvidence, PathwayMatch, PersonalizedInteraction
 from app.clients.drugbank import DrugBankClient
+from app.services.cache import cache_service
 
 logger = logging.getLogger(__name__)
 
@@ -50,36 +52,41 @@ class DrugInteractionService:
         compound_target_names = {t.target_name.lower() for t in targets}
         compound_pathway_names = {p.pathway_name.lower() for p in pathways}
 
+        # Phase 1: Fetch all medication targets concurrently
+        med_targets_map = {}
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_med = {
+                executor.submit(self._get_medication_targets, med_name): med_name
+                for med_name in medication_names
+            }
+            for future in as_completed(future_to_med):
+                med_name = future_to_med[future]
+                try:
+                    med_targets_map[med_name] = future.result()
+                except Exception as e:
+                    logger.error(f"Error fetching targets for {med_name}: {e}")
+                    med_targets_map[med_name] = {}
+
+        # Phase 2: Process results sequentially (fast in-memory operations)
         for medication_name in medication_names:
             try:
-                # Get medication's targets and pathways
-                med_interactions = self._get_medication_targets(medication_name)
+                med_interactions = med_targets_map.get(medication_name, {})
 
                 if med_interactions:
-                    # Find shared targets
                     shared_targets = self._find_shared_targets(
                         compound_target_names, med_interactions.get("targets", [])
                     )
-
-                    # Find shared pathways
                     shared_pathways = self._find_shared_pathways(
                         compound_pathway_names, med_interactions.get("pathways", [])
                     )
-
-                    # Determine severity
                     severity = self._assign_severity(
                         shared_targets, shared_pathways, medication_name, compound_name
                     )
-
-                    # Generate recommendation
                     recommendation = self._generate_recommendation(severity)
-
-                    # Get clinical effect
                     clinical_effect = self._get_clinical_effect(
                         medication_name, shared_targets, shared_pathways
                     )
 
-                    # Create interaction record
                     interaction = PersonalizedInteraction(
                         medication_name=medication_name,
                         severity=severity,
@@ -94,11 +101,9 @@ class DrugInteractionService:
                         shared_targets=list(shared_targets),
                         shared_pathways=list(shared_pathways),
                     )
-
                     interactions.append(interaction)
 
                 else:
-                    # No known interaction data found
                     interaction = PersonalizedInteraction(
                         medication_name=medication_name,
                         severity="none",
@@ -115,7 +120,6 @@ class DrugInteractionService:
                 logger.error(
                     f"Error checking interaction for {medication_name}: {str(e)}"
                 )
-                # Return unknown severity on error
                 interaction = PersonalizedInteraction(
                     medication_name=medication_name,
                     severity="minor",
@@ -131,15 +135,27 @@ class DrugInteractionService:
         return interactions
 
     def _get_medication_targets(self, medication_name: str) -> dict:
-        """Get medication's targets and pathways from DGIdb."""
+        """Get medication's targets and pathways from DGIdb, with caching."""
+        cache_key = medication_name.lower()
+
+        # Check cache first
+        cached = cache_service.get("med_targets", cache_key)
+        if cached is not None:
+            logger.debug(f"Cache hit for medication targets: {medication_name}")
+            return cached
+
         try:
-            # Get drug interactions from DGIdb via DrugBankClient
             result = drugbank_client.get_drug_interactions(medication_name)
             if result:
-                return {
+                targets_data = {
                     "targets": result.get("targets", []),
                     "pathways": result.get("pathways", []),
                 }
+                cache_service.set("med_targets", cache_key, targets_data)
+                return targets_data
+
+            # Cache empty result to avoid repeated lookups
+            cache_service.set("med_targets", cache_key, {}, ttl=3600)
             return {}
         except Exception as e:
             logger.warning(f"Could not fetch targets for {medication_name}: {str(e)}")

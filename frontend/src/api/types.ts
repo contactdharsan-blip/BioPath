@@ -145,6 +145,55 @@ export interface AnalysisJob {
   error?: string;
 }
 
+// Dosage Range types
+export interface DosageDataPoint {
+  value?: number;
+  value_high?: number;
+  unit: string;
+  route?: string;
+  context: 'therapeutic' | 'toxic' | 'lethal' | 'plant_concentration' | 'potency';
+  description: string;
+  source: string;
+  source_url?: string;
+  confidence: 'high' | 'moderate' | 'low';
+  species?: string;
+}
+
+export interface PotencyDataItem {
+  target_name: string;
+  pchembl_value: number;
+  standard_type: string;
+  standard_value: number;
+  standard_units: string;
+  effective_concentration_nm: number;
+  potency_category: 'very_potent' | 'potent' | 'moderate' | 'weak';
+}
+
+export interface PlantConcentrationItem {
+  plant_part?: string;
+  concentration_low?: number;
+  concentration_high?: number;
+  unit: string;
+}
+
+export interface SafetyProfile {
+  ld50?: DosageDataPoint;
+  therapeutic_range?: DosageDataPoint;
+  therapeutic_index?: number;
+  safety_classification?: 'narrow_therapeutic_index' | 'wide' | 'unknown';
+  warnings: string[];
+}
+
+export interface DosageResponse {
+  compound_name: string;
+  dosage_data: DosageDataPoint[];
+  potency_data: PotencyDataItem[];
+  plant_concentrations: PlantConcentrationItem[];
+  safety_profile: SafetyProfile;
+  sources_queried: string[];
+  data_quality_note: string;
+}
+
 // PubChem API types
 export interface PubChemSuggestion {
   name: string;

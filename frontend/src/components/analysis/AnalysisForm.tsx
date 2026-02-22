@@ -11,6 +11,8 @@ interface AnalysisFormProps {
 
 export const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, isLoading = false }) => {
   const [ingredientName, setIngredientName] = useState('');
+  const [isValidCompound, setIsValidCompound] = useState(false);
+  const [showValidationError, setShowValidationError] = useState(false);
   const enablePredictions = true;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -20,14 +22,28 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, isLoading 
       return;
     }
 
+    if (!isValidCompound) {
+      setShowValidationError(true);
+      return;
+    }
+
+    setShowValidationError(false);
     onSubmit({
       ingredient_name: ingredientName.trim(),
       enable_predictions: enablePredictions,
     });
   };
 
+  const handleInputChange = (value: string) => {
+    setIngredientName(value);
+    setIsValidCompound(false);
+    setShowValidationError(false);
+  };
+
   const handleSelectCompound = (name: string) => {
     setIngredientName(name);
+    setIsValidCompound(true);
+    setShowValidationError(false);
   };
 
   return (
@@ -48,13 +64,19 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, isLoading 
           </label>
           <AutocompleteInput
             value={ingredientName}
-            onChange={setIngredientName}
+            onChange={handleInputChange}
             onSelect={handleSelectCompound}
             placeholder="e.g., ibuprofen, aspirin, caffeine..."
           />
-          <p className="mt-1.5 text-xs text-slate-500">
-            Powered by PubChem. Type at least 2 characters.
-          </p>
+          {showValidationError ? (
+            <p className="mt-1.5 text-xs text-red-400">
+              Please select a valid compound from the suggestions.
+            </p>
+          ) : (
+            <p className="mt-1.5 text-xs text-slate-500">
+              Powered by PubChem. Type at least 2 characters.
+            </p>
+          )}
         </div>
 
         <div className="flex gap-3 pt-1">
@@ -73,7 +95,7 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit, isLoading 
               type="button"
               variant="outline"
               size="lg"
-              onClick={() => setIngredientName('')}
+              onClick={() => { setIngredientName(''); setIsValidCompound(false); setShowValidationError(false); }}
             >
               Clear
             </Button>

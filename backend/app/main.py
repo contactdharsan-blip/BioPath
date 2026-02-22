@@ -16,12 +16,14 @@ from app.models.schemas import (
     BodyImpactReport,
     AnalysisJob,
     SideEffectsResponse,
-    SideEffect
+    SideEffect,
+    DosageResponse,
 )
 from app.services.analysis import AnalysisService
 from app.services.plant_identification import plant_identification_service
 from app.services.drug_interaction_service import drug_interaction_service
 from app.services.side_effects_service import side_effects_service
+from app.services.dosage_service import dosage_service
 
 # Try to import Celery, but don't fail if it's unavailable
 try:
@@ -827,6 +829,44 @@ async def get_side_effects(request: SideEffectsRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to retrieve side effects: {str(e)}"
+        )
+
+
+# ============================================
+# Dosage API Endpoints
+# ============================================
+
+class DosageRequest(BaseModel):
+    """Request for dosage information"""
+    compound_name: str = Field(..., description="Name of the compound")
+    pubchem_cid: Optional[int] = Field(None, description="PubChem CID")
+    inchikey: Optional[str] = Field(None, description="InChIKey")
+    smiles: Optional[str] = Field(None, description="SMILES")
+    targets: List[str] = Field(default_factory=list, description="Target names")
+
+
+@app.post("/api/dosage", response_model=DosageResponse)
+async def get_dosage(request: DosageRequest):
+    """
+    Get dosage range data for a compound.
+    Aggregates data from PubChem toxicity, ChEMBL potency, and Dr. Duke concentrations.
+    """
+    try:
+        logger.info(f"Dosage request: {request.compound_name}")
+        response = dosage_service.get_dosage_data(
+            compound_name=request.compound_name,
+            pubchem_cid=request.pubchem_cid,
+            inchikey=request.inchikey,
+            smiles=request.smiles,
+            target_names=request.targets,
+        )
+        logger.info(f"Found {len(response.dosage_data)} dosage data points for {request.compound_name}")
+        return response
+    except Exception as e:
+        logger.error(f"Dosage error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve dosage data: {str(e)}"
         )
 
 

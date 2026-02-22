@@ -14,6 +14,8 @@ External database fallback:
 """
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import partial
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
@@ -32,6 +34,7 @@ from app.data.plant_compounds import (
 )
 from app.services.analysis import AnalysisService
 from app.models.schemas import IngredientInput, BodyImpactReport
+from app.utils.concurrent import fetch_concurrent
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +81,21 @@ class PlantIdentificationService:
         self.plantnet = PlantNetClient()
         self.analysis_service = AnalysisService()
 
+    def _analyze_single_compound(
+        self, compound_name: str, enable_predictions: bool = False
+    ) -> Optional[BodyImpactReport]:
+        """Analyze a single compound. Used as the fetch function for concurrent execution."""
+        try:
+            logger.info(f"Analyzing compound: {compound_name}")
+            ingredient_input = IngredientInput(
+                ingredient_name=compound_name,
+                enable_predictions=enable_predictions
+            )
+            return self.analysis_service.analyze_ingredient(ingredient_input)
+        except Exception as e:
+            logger.error(f"Error analyzing {compound_name}: {e}")
+            return None
+
     def _fetch_compounds_from_external_dbs(
         self,
         scientific_name: str,
@@ -100,59 +118,65 @@ class PlantIdentificationService:
         compounds = []
         seen_names = set()
 
-        # Try Dr. Duke's Phytochemical Database (uses scientific name)
-        try:
-            logger.info(f"Searching Dr. Duke's database for: {scientific_name}")
-            duke_result = dr_duke_client.get_plant_compounds_for_species(scientific_name)
+        # Fetch from Dr. Duke's and PhytoHub concurrently
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            duke_future = executor.submit(
+                dr_duke_client.get_plant_compounds_for_species, scientific_name
+            )
+            phytohub_futures = {
+                executor.submit(
+                    phytohub_client.get_plant_compounds_for_species, name
+                ): name
+                for name in common_names[:2]
+            }
 
-            if duke_result.get("found"):
-                for comp in duke_result.get("compounds", [])[:max_compounds]:
-                    name = comp.get("name", "").lower()
-                    if name and name not in seen_names:
-                        seen_names.add(name)
-                        # Create CompoundMetadata with default scores
-                        # External DB compounds get moderate default scores
-                        compounds.append(CompoundMetadata(
-                            name=comp.get("name"),
-                            research_level=0.4,  # Moderate - found in scientific DB
-                            drug_interaction_risk=0.3,  # Unknown - be cautious
-                            bioactivity_strength=0.5,  # Moderate default
-                            lifestyle_categories=self._activities_to_categories(
-                                comp.get("activities", [])
-                            )
-                        ))
-                logger.info(f"Dr. Duke's found {len(duke_result.get('compounds', []))} compounds")
-        except Exception as e:
-            logger.error(f"Error fetching from Dr. Duke's: {e}")
-
-        # Try PhytoHub (uses common names - food/plant names)
-        for common_name in common_names[:2]:  # Try first 2 common names
-            if len(compounds) >= max_compounds:
-                break
-
+            # Process Dr. Duke's result first (deduplication priority)
             try:
-                logger.info(f"Searching PhytoHub for: {common_name}")
-                phytohub_result = phytohub_client.get_plant_compounds_for_species(common_name)
-
-                if phytohub_result.get("found"):
-                    for comp in phytohub_result.get("compounds", []):
+                duke_result = duke_future.result(timeout=30)
+                if duke_result.get("found"):
+                    for comp in duke_result.get("compounds", [])[:max_compounds]:
                         name = comp.get("name", "").lower()
                         if name and name not in seen_names:
                             seen_names.add(name)
                             compounds.append(CompoundMetadata(
                                 name=comp.get("name"),
-                                research_level=0.5,  # Moderate-good - dietary database
-                                drug_interaction_risk=0.2,  # Dietary compounds usually lower risk
-                                bioactivity_strength=0.4,  # Moderate default
-                                lifestyle_categories=self._compound_class_to_categories(
-                                    comp.get("compound_class")
+                                research_level=0.4,
+                                drug_interaction_risk=0.3,
+                                bioactivity_strength=0.5,
+                                lifestyle_categories=self._activities_to_categories(
+                                    comp.get("activities", [])
                                 )
                             ))
-                            if len(compounds) >= max_compounds:
-                                break
-                    logger.info(f"PhytoHub found {phytohub_result.get('compound_count', 0)} compounds")
+                    logger.info(f"Dr. Duke's found {len(duke_result.get('compounds', []))} compounds")
             except Exception as e:
-                logger.error(f"Error fetching from PhytoHub for {common_name}: {e}")
+                logger.error(f"Error fetching from Dr. Duke's: {e}")
+
+            # Process PhytoHub results
+            for future in as_completed(phytohub_futures):
+                common_name = phytohub_futures[future]
+                if len(compounds) >= max_compounds:
+                    break
+                try:
+                    phytohub_result = future.result(timeout=30)
+                    if phytohub_result.get("found"):
+                        for comp in phytohub_result.get("compounds", []):
+                            name = comp.get("name", "").lower()
+                            if name and name not in seen_names:
+                                seen_names.add(name)
+                                compounds.append(CompoundMetadata(
+                                    name=comp.get("name"),
+                                    research_level=0.5,
+                                    drug_interaction_risk=0.2,
+                                    bioactivity_strength=0.4,
+                                    lifestyle_categories=self._compound_class_to_categories(
+                                        comp.get("compound_class")
+                                    )
+                                ))
+                                if len(compounds) >= max_compounds:
+                                    break
+                        logger.info(f"PhytoHub found {phytohub_result.get('compound_count', 0)} compounds")
+                except Exception as e:
+                    logger.error(f"Error fetching from PhytoHub for {common_name}: {e}")
 
         return compounds[:max_compounds]
 
@@ -395,21 +419,19 @@ class PlantIdentificationService:
                     }
                 )
 
-        # Step 3: Analyze each compound (in priority order)
+        # Step 3: Analyze all compounds concurrently
+        compound_names = [compound.name for compound in compounds_found]
+        analyze_fn = partial(
+            self._analyze_single_compound, enable_predictions=enable_predictions
+        )
+        results_map = fetch_concurrent(analyze_fn, compound_names, max_workers=5, timeout=120.0)
+
+        # Preserve priority order from compounds_found
         compound_reports = []
         for compound in compounds_found:
-            compound_name = compound.name
-            logger.info(f"Analyzing compound: {compound_name}")
-
-            try:
-                ingredient_input = IngredientInput(
-                    ingredient_name=compound_name,
-                    enable_predictions=enable_predictions
-                )
-                report = self.analysis_service.analyze_ingredient(ingredient_input)
+            report = results_map.get(compound.name)
+            if report:
                 compound_reports.append(report)
-            except Exception as e:
-                logger.error(f"Error analyzing {compound_name}: {e}")
 
         # Step 4: Aggregate pathways across all compounds
         aggregate_pathways = self._aggregate_pathways(compound_reports)

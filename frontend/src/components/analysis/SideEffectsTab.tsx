@@ -132,10 +132,10 @@ export const SideEffectsTab: React.FC<SideEffectsTabProps> = ({ targets, pathway
 
   return (
     <Card className="animate-slide-up">
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
         <div>
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             Potential Side Effects
@@ -146,7 +146,7 @@ export const SideEffectsTab: React.FC<SideEffectsTabProps> = ({ targets, pathway
         </div>
 
         {/* Severity Summary */}
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-shrink-0">
           {severityCounts.serious > 0 && (
             <div className="text-center">
               <span className="text-2xl font-bold text-red-600 dark:text-red-400">{severityCounts.serious}</span>
@@ -165,7 +165,7 @@ export const SideEffectsTab: React.FC<SideEffectsTabProps> = ({ targets, pathway
       </div>
 
       {/* Filter Buttons */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         <button
           onClick={() => setFilterSeverity('all')}
           className={clsx(
@@ -240,7 +240,7 @@ export const SideEffectsTab: React.FC<SideEffectsTabProps> = ({ targets, pathway
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h4 className="font-semibold text-gray-900 dark:text-white">{effect.name}</h4>
                       <SeverityBadge severity={effect.severity as SeverityLevel} />
                       <FrequencyBadge frequency={effect.frequency as FrequencyLevel} />

@@ -8,6 +8,7 @@ import logging
 from app.config import settings
 from app.models.schemas import TargetEvidence, AssayReference, ProvenanceRecord, ConfidenceTier, PathwayMatch
 from app.utils import RateLimiter
+from app.utils.concurrent import fetch_concurrent
 from app.services.cache import cache_service
 
 # Disease/indication to biological pathway mapping
@@ -480,13 +481,9 @@ class ChEMBLClient:
 
         logger.info(f"Target info cache hit: {len(cached_targets)}, fetching: {len(missing_ids)}")
 
-        # Step 3: Fetch missing targets
-        newly_fetched = {}
-        for target_id in missing_ids:
-            target_info = self._get_target_info(target_id)
-            if target_info:
-                newly_fetched[target_id] = target_info
-                results[target_id] = target_info
+        # Step 3: Fetch missing targets concurrently
+        newly_fetched = fetch_concurrent(self._get_target_info, missing_ids, max_workers=5)
+        results.update(newly_fetched)
 
         # Step 4: Cache newly fetched targets
         if newly_fetched:
@@ -494,6 +491,124 @@ class ChEMBLClient:
             logger.info(f"Cached {len(newly_fetched)} new target info records")
 
         return results
+
+    def get_potency_summary(
+        self,
+        inchikey: str,
+        smiles: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get potency summary (IC50/EC50/Ki values) for dosage context.
+
+        Args:
+            inchikey: Standard InChIKey
+            smiles: Optional SMILES for fallback search
+
+        Returns:
+            List of dicts with target_name, pchembl_value, standard_type,
+            standard_value, standard_units, effective_concentration_nm, potency_category
+        """
+        cached = cache_service.get("potency_summary", inchikey)
+        if cached:
+            logger.debug(f"Cache hit for potency summary: {inchikey}")
+            return cached
+
+        try:
+            chembl_id = self.find_compound_by_inchikey(inchikey)
+            if not chembl_id and smiles:
+                chembl_id = self.find_compound_by_smiles(smiles)
+
+            if not chembl_id:
+                return []
+
+            url = (
+                f"{self.base_url}/activity.json?"
+                f"molecule_chembl_id={chembl_id}&"
+                "target_organism=Homo+sapiens&"
+                "standard_type__in=IC50,Ki,Kd,EC50&"
+                "pchembl_value__isnull=False&"
+                "limit=100"
+            )
+            data = self._get(url)
+            activities = data.get("activities", [])
+
+            # Group by target, keep best pchembl per target
+            target_map: Dict[str, Dict[str, Any]] = {}
+
+            for activity in activities:
+                target_chembl_id = activity.get("target_chembl_id")
+                pchembl_raw = activity.get("pchembl_value")
+                if not target_chembl_id or pchembl_raw is None:
+                    continue
+
+                try:
+                    pchembl = float(pchembl_raw)
+                except (ValueError, TypeError):
+                    continue
+
+                std_value_raw = activity.get("standard_value")
+                std_units = activity.get("standard_units", "nM")
+                std_type = activity.get("standard_type", "IC50")
+
+                try:
+                    std_value = float(std_value_raw) if std_value_raw else 10 ** (9 - pchembl)
+                except (ValueError, TypeError):
+                    std_value = 10 ** (9 - pchembl)
+
+                if target_chembl_id not in target_map or pchembl > target_map[target_chembl_id]["pchembl_value"]:
+                    # Normalize to nM
+                    if std_units == "uM":
+                        effective_nm = std_value * 1000
+                    elif std_units == "mM":
+                        effective_nm = std_value * 1_000_000
+                    elif std_units == "nM":
+                        effective_nm = std_value
+                    else:
+                        effective_nm = 10 ** (9 - pchembl)
+
+                    if pchembl >= 8:
+                        category = "very_potent"
+                    elif pchembl >= 7:
+                        category = "potent"
+                    elif pchembl >= 6:
+                        category = "moderate"
+                    else:
+                        category = "weak"
+
+                    target_map[target_chembl_id] = {
+                        "target_chembl_id": target_chembl_id,
+                        "pchembl_value": pchembl,
+                        "standard_type": std_type,
+                        "standard_value": std_value,
+                        "standard_units": std_units or "nM",
+                        "effective_concentration_nm": effective_nm,
+                        "potency_category": category,
+                    }
+
+            # Resolve target names
+            target_info_map = self._get_target_info_batch(list(target_map.keys()))
+            results = []
+            for tid, activity_data in target_map.items():
+                info = target_info_map.get(tid)
+                name = info["target_name"] if info else tid
+                results.append({
+                    "target_name": name,
+                    "pchembl_value": activity_data["pchembl_value"],
+                    "standard_type": activity_data["standard_type"],
+                    "standard_value": activity_data["standard_value"],
+                    "standard_units": activity_data["standard_units"],
+                    "effective_concentration_nm": activity_data["effective_concentration_nm"],
+                    "potency_category": activity_data["potency_category"],
+                })
+
+            results.sort(key=lambda x: x["pchembl_value"], reverse=True)
+            cache_service.set("potency_summary", inchikey, results)
+            logger.info(f"Potency summary: {len(results)} targets for {chembl_id}")
+            return results
+
+        except Exception as e:
+            logger.error(f"Error getting potency summary: {e}")
+            return []
 
     def get_drug_indications(self, chembl_id: str) -> List[Dict[str, Any]]:
         """

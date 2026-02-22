@@ -243,7 +243,7 @@ a:hover {
   position: relative;
   isolation: isolate;
   border: 1px solid var(--glass-border);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .card-glass-outer:hover {
@@ -256,6 +256,7 @@ a:hover {
   position: absolute;
   inset: 0;
   border-radius: inherit;
+  overflow: hidden;
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   filter: url(#glass-warp-strong);
